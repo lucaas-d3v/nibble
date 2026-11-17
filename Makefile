@@ -14,7 +14,7 @@ help:
 	@echo "make voices              lista as vozes da ElevenLabs (precisa ELEVENLABS_API_KEY)"
 	@echo "make voice EP=...        gera a narração de cada cena (ElevenLabs, com cache)"
 	@echo "make video EP=...        junta a narração de audio/ ao vídeo"
-	@echo "make wasm                recompila o simulador Zig"
+	@echo "make wasm                recompila os módulos Zig (partículas e gerador de placas)"
 	@echo "Use CZ_GPU=1 para renderizar na GPU."
 
 install:
@@ -49,3 +49,4 @@ video:
 
 wasm:
 	$(ZIG) build-exe sim/sim.zig -target wasm32-freestanding -O ReleaseSmall -fno-entry -rdynamic -femit-bin=engine/public/sim.wasm
+	$(ZIG) build-exe sim/gen.zig -target wasm32-freestanding -O ReleaseFast -fstrip -fno-entry -rdynamic -femit-bin=engine/public/gen.wasm

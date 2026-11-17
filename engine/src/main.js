@@ -10,6 +10,7 @@ import { applyCamera, cameraPose, FOV } from './stage/camera.js';
 import { buildObject } from './prefabs/index.js';
 import { Hud } from './hud/hud.js';
 import { loadSim } from './sim/sim.js';
+import { loadGen } from './sim/gen.js';
 import { buildTimeline } from '../../shared/timeline.js';
 import { hash } from './util.js';
 
@@ -155,7 +156,7 @@ function renderAtTime(t) {
 }
 
 async function boot() {
-  await Promise.all([loadSim(), document.fonts.load('700 10px "Space Grotesk"'), document.fonts.load('600 10px "JetBrains Mono"')]);
+  await Promise.all([loadSim(), loadGen(), document.fonts.load('700 10px "Space Grotesk"'), document.fonts.load('600 10px "JetBrains Mono"')]);
   await document.fonts.ready;
   resize();
   window.addEventListener('resize', () => { resize(); if (state.episode) renderAtTime(window.CZ.time); });

@@ -1,24 +1,13 @@
 import * as THREE from 'three';
 import { PALETTE, mat, metal, glow, mesh, canvasTexture, lerp, smooth, ramp, clamp01, hash, easeOutBack } from '../util.js';
 import { createEmitter } from '../sim/sim.js';
+import { boardMaterial } from '../sim/gen.js';
 
 // Cada prefab devolve { root, update(lt) }. `lt` é o tempo local da cena em segundos.
 // Convenção: origem no centro do objeto, frente apontando para +Z, tamanho ~1 unidade.
 
-const pcbTexture = (seed = 1) => canvasTexture(512, (c, s) => {
-  c.fillStyle = '#0f5132'; c.fillRect(0, 0, s, s);
-  c.strokeStyle = '#1c7a4d'; c.lineWidth = 3; c.lineCap = 'round';
-  for (let i = 0; i < 46; i++) {
-    let x = Math.floor(hash(i + seed) * 24) * s / 24, y = Math.floor(hash(i + seed + 40) * 24) * s / 24;
-    c.beginPath(); c.moveTo(x, y);
-    for (let j = 0; j < 3; j++) {
-      const d = Math.floor(hash(i * 11 + j + seed) * 4), len = (1 + Math.floor(hash(i * 5 + j) * 4)) * s / 24;
-      x += [len, 0, -len, 0][d]; y += [0, len, 0, -len][d]; c.lineTo(x, y);
-    }
-    c.stroke();
-    c.fillStyle = '#d9b24c'; c.beginPath(); c.arc(x, y, 4, 0, 7); c.fill();
-  }
-});
+// Placa gerada em Zig (trilhas roteadas). Placas pequenas usam grade menos densa para ler de longe.
+const pcb = (seed, opts = {}) => boardMaterial({ size: 1024, grid: 40, seed, style: 0, components: 4, nets: 45 }, opts);
 
 const labelTexture = (text, { fg = '#cbd5e1', bg = '#11161e', size = 256, font = 64 } = {}) => canvasTexture(size, (c, s) => {
   c.fillStyle = bg; c.fillRect(0, 0, s, s);
@@ -28,7 +17,7 @@ const labelTexture = (text, { fg = '#cbd5e1', bg = '#11161e', size = 256, font =
 
 function cpu(o) {
   const root = new THREE.Group();
-  root.add(mesh(new THREE.BoxGeometry(1, 0.05, 1), mat(0xffffff, { map: pcbTexture(3), roughness: 0.6 })));
+  root.add(mesh(new THREE.BoxGeometry(1, 0.05, 1), pcb(3)));
   // contatos dourados embaixo
   const pads = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.012, 0.012, 0.02, 8), metal(PALETTE.gold), 24 * 24);
   const m4 = new THREE.Matrix4(); let n = 0;
@@ -65,7 +54,7 @@ function cpu(o) {
 
 function ram(o) {
   const root = new THREE.Group();
-  root.add(mesh(new THREE.BoxGeometry(1.4, 0.36, 0.022), mat(0xffffff, { map: pcbTexture(8), roughness: 0.6 })));
+  root.add(mesh(new THREE.BoxGeometry(1.4, 0.36, 0.022), pcb(8, { repeat: [1, 0.26] })));
   const chips = [];
   for (let i = 0; i < 8; i++) {
     const m = new THREE.MeshStandardMaterial({ color: PALETTE.plastic, emissive: PALETTE.amber, emissiveIntensity: 0, roughness: 0.4 });
@@ -104,7 +93,7 @@ function key(o) {
     ? new THREE.MeshStandardMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.16, roughness: 0.08, metalness: 0.2, depthWrite: false })
     : mat(PALETTE.plastic);
   root.add(mesh(new THREE.BoxGeometry(0.62, 0.36, 0.62), housingMat, { pos: [0, 0.18, 0], shadow: !o.cutaway }));
-  root.add(mesh(new THREE.BoxGeometry(0.9, 0.04, 0.9), mat(0xffffff, { map: pcbTexture(5) }), { pos: [0, -0.02, 0] }));
+  root.add(mesh(new THREE.BoxGeometry(0.9, 0.04, 0.9), pcb(5), { pos: [0, -0.02, 0] }));
   // os dois contatos de metal que fecham o circuito
   const contactMat = new THREE.MeshStandardMaterial({ color: PALETTE.copper, metalness: 0.9, roughness: 0.3, emissive: PALETTE.amber, emissiveIntensity: 0 });
   const fixed = mesh(new THREE.BoxGeometry(0.05, 0.24, 0.16), contactMat, { pos: [0.1, 0.13, 0] });
@@ -139,7 +128,7 @@ function key_matrix(o) {
   const rows = o.rows ?? 4, cols = o.cols ?? 6, pitch = 0.2;
   const root = new THREE.Group();
   const w = cols * pitch, h = rows * pitch;
-  root.add(mesh(new THREE.BoxGeometry(w + 0.2, 0.03, h + 0.2), mat(0xffffff, { map: pcbTexture(2) }), { pos: [0, -0.02, 0] }));
+  root.add(mesh(new THREE.BoxGeometry(w + 0.2, 0.03, h + 0.2), pcb(2), { pos: [0, -0.02, 0] }));
   const rowM = [], colM = [], cell = [];
   for (let r = 0; r < rows; r++) {
     const m = new THREE.MeshStandardMaterial({ color: 0x3a2a10, emissive: PALETTE.amber, emissiveIntensity: 0.15, roughness: 0.4 });

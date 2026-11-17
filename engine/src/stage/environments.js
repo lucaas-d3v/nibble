@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PALETTE, mat, metal, glow, mesh, canvasTexture, hash } from '../util.js';
+import { boardMaterial } from '../sim/gen.js';
 
 function lights(group, { key = 0xfff1df, keyI = 2.0, rim = PALETTE.amber, rimI = 5, fill = 0x4aa8ff, fillI = 0.9, shadowSize = 2048 }) {
   const k = new THREE.DirectionalLight(key, keyI);
@@ -56,25 +57,9 @@ function bancada(q) {
 function chip(q) {
   const g = new THREE.Group();
   lights(g, { key: 0xbfd9ff, keyI: 1.6, rim: PALETTE.cyan, rimI: 6, fill: PALETTE.amber, fillI: 1.0, shadowSize: q.shadowSize });
-  // piso de silício com trilhas gravadas
-  const traces = (emissive) => canvasTexture(1024, (c, s) => {
-    c.fillStyle = emissive ? '#000' : '#141c2b'; c.fillRect(0, 0, s, s);
-    c.lineCap = 'round';
-    for (let i = 0; i < 70; i++) {
-      let x = Math.floor(hash(i) * 32) * s / 32, y = Math.floor(hash(i + 50) * 32) * s / 32;
-      c.strokeStyle = emissive ? (hash(i + 7) > 0.72 ? '#ffb020' : hash(i + 7) > 0.5 ? '#38d6ff' : '#000') : '#25324a';
-      c.lineWidth = emissive ? 3 : 5;
-      c.beginPath(); c.moveTo(x, y);
-      for (let j = 0; j < 4; j++) {
-        const d = Math.floor(hash(i * 13 + j) * 4), len = (1 + Math.floor(hash(i * 7 + j) * 5)) * s / 32;
-        x += [len, 0, -len, 0][d]; y += [0, len, 0, -len][d]; c.lineTo(x, y);
-      }
-      c.stroke();
-      c.fillStyle = c.strokeStyle; c.beginPath(); c.arc(x, y, emissive ? 5 : 8, 0, 7); c.fill();
-    }
-  });
-  const floorMat = new THREE.MeshStandardMaterial({ map: traces(false), emissiveMap: traces(true), emissive: 0xffffff, emissiveIntensity: 2.4, roughness: 0.35, metalness: 0.6 });
-  [floorMat.map, floorMat.emissiveMap].forEach((t) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 4); });
+  // piso de silício: interconexão roteada pelo gerador em Zig, repete sem costura
+  const floorMat = boardMaterial({ size: 2048, grid: 128, seed: 7, style: 1, components: 12, nets: 220 },
+    { repeat: [4, 4], emissive: 2.6, normalScale: 1.2 });
   g.add(mesh(new THREE.PlaneGeometry(26, 26), floorMat, { rot: [-Math.PI / 2, 0, 0], pos: [0, 0, -2], shadow: false }));
   // "prédios" de lógica ao fundo
   for (let i = 0; i < 22; i++) {

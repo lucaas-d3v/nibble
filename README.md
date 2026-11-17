@@ -62,12 +62,23 @@ Tatu-bola em pé, modelado inteiro em código (`engine/src/character/`):
 
 ## Onde entra o Zig
 
-`sim/sim.zig` é o simulador de partículas (faíscas, fluxo, poeira), compilado para `wasm32-freestanding` (9 KB).
-Como o motor salta para qualquer instante, efeitos com estado precisam ser re-simulados do zero até `t`;
-passo fixo de 1/120 s e PRNG com semente garantem o mesmo resultado sempre. O `.wasm` já vem compilado em
-`engine/public/`; `make wasm` recompila (testado com Zig 0.17).
+Dois módulos em `sim/`, compilados para `wasm32-freestanding` (`make wasm`, testado com Zig 0.17.1).
+Os `.wasm` já vêm compilados em `engine/public/`.
 
-O resto fica em JavaScript de propósito: quem desenha é a GPU, e passar a montagem de cena para WASM não deixaria nada mais bonito nem mais rápido.
+**`gen.zig` (27 KB): gerador de placas.** Roteia trilhas de verdade numa grade: caminho mínimo com custo
+de curva (só 45° e 90°), trilhas que se desviam dos componentes e umas das outras, barramentos,
+vias de costura. Rasteriza com antialias em quatro mapas de material (cor, normal, AO/rugosidade/metal,
+emissão) e a grade dá a volta nas bordas, então a textura repete sem costura. Dois estilos: placa verde
+com máscara de solda, pads dourados e serigrafia (objetos `cpu`, `ram`, `key`, `key_matrix`), e silício
+escuro com blocos de memória e trilhas acesas em âmbar e ciano (chão do cenário `chip`). Mesma semente,
+mesma placa. Gera uma vez por cena, ~0,3 s (1024 px) e ~1 s (2048 px).
+
+**`sim.zig` (9 KB): partículas** (faíscas, fluxo, poeira). Como o motor salta para qualquer instante,
+efeitos com estado são re-simulados do zero até `t`; passo fixo de 1/120 s e PRNG com semente garantem o
+mesmo resultado sempre.
+
+O resto fica em JavaScript de propósito: quem desenha é a GPU, e passar a montagem de cena para WASM não
+deixaria nada mais bonito nem mais rápido.
 
 ## Narração
 
