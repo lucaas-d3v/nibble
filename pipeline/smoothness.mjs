@@ -7,9 +7,8 @@
 //   node pipeline/smoothness.mjs ep01_tecla --fps 60
 //
 // Cortes de cena são ignorados (ali o salto é intencional). Sai com código 1 se achar tranco.
-import { existsSync } from 'node:fs';
 import { createServer } from 'vite';
-import { chromium } from 'playwright-core';
+import { launchBrowser } from './browser.mjs';
 import { ROOT, resolveEpisode, loadEpisode, timelineFor, parseArgs } from './common.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -19,11 +18,10 @@ const rates = args.fps ? [Number(args.fps)] : [30, 60];
 // Limite: um quadro cuja aceleração passa de RATIO vezes a mediana local (e de um piso absoluto)
 const RATIO = Number(args.ratio ?? 6);
 
-const chrome = [process.env.CHROME_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
-  .find((p) => p && existsSync(p));
 const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: Number(args.port ?? 5174) } });
 await server.listen();
-const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+// mesmo lançamento do render: SwiftShader, ou a GPU se o Chrome não tiver SwiftShader (ou com CZ_GPU=1)
+const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width: 270, height: 480 } });
 page.on('pageerror', (e) => console.error('[página]', e.message));
 
