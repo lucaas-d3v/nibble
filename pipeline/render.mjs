@@ -68,7 +68,9 @@ const server = await createServer({ root: ROOT, logLevel: 'error', server: { por
 await server.listen();
 const url = server.resolvedUrls.local[0];
 
-const browser = await launchBrowser();
+let browser;
+try { browser = await launchBrowser(); }
+catch (e) { console.error(`ERRO   ${e.message}`); await server.close(); process.exit(1); }
 const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
 page.on('pageerror', (e) => console.error('[página]', e.message));
 page.on('console', (m) => { if (m.type() === 'error') console.error('[console]', m.text()); });

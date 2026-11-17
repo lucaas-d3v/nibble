@@ -21,7 +21,9 @@ const RATIO = Number(args.ratio ?? 6);
 const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: Number(args.port ?? 5174) } });
 await server.listen();
 // mesmo lançamento do render: SwiftShader, ou a GPU se o Chrome não tiver SwiftShader (ou com CZ_GPU=1)
-const browser = await launchBrowser();
+let browser;
+try { browser = await launchBrowser(); }
+catch (e) { console.error(`ERRO   ${e.message}`); await server.close(); process.exit(1); }
 const page = await browser.newPage({ viewport: { width: 270, height: 480 } });
 page.on('pageerror', (e) => console.error('[página]', e.message));
 
