@@ -42,6 +42,20 @@ Ajustes por linha de comando: `--samples`, `--aperture`, `--fps`, `--scale`, `--
 node pipeline/render.mjs ep00_nibble --stills --scene 8 --at 2.2 --scale 1 --samples 16 --clean
 ```
 
+## Fluxo de um episódio
+
+```bash
+make new    EP=ep02_ram TITLE="Por que a RAM esquece"   # esqueleto válido (o editor autocompleta pelo schema/)
+make stills EP=ep02_ram                                  # confere enquadramento
+make voice  EP=ep02_ram                                  # narração (ElevenLabs)
+CZ_GPU=1 make render EP=ep02_ram                         # vídeo
+make video  EP=ep02_ram                                  # voz + efeitos + trilha + .srt
+make thumb  EP=ep02_ram SCENE=1 AT=2                     # thumbnail com o título (*trecho* fica âmbar)
+```
+
+O CI (`.github/workflows/ci.yml`) compila o Zig, confere o esquema, valida todos os episódios,
+roda o verificador de fluidez e publica quadros de conferência como artefato.
+
 ## Fluidez (30 e 60 fps)
 
 Tudo no motor é função contínua do tempo, então o mesmo episódio sai a 30 ou 60 fps sem mudar nada:

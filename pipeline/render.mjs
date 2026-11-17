@@ -26,6 +26,8 @@ const { errors, warns } = validate(episode);
 warns.forEach((m) => console.warn(`aviso  ${m}`));
 if (errors.length) { errors.forEach((m) => console.error(`ERRO   ${m}`)); process.exit(1); }
 
+const thumb = !!args.thumb;
+if (thumb) { args.stills = true; args.clean = true; args.scale ??= 1; args.samples ??= 16; }
 const preview = !!args.preview, stills = !!args.stills;
 const fps = Number(args.fps ?? (preview ? 15 : 30));
 const scale = Number(args.scale ?? (preview || stills ? 0.5 : 1));
@@ -91,8 +93,19 @@ try {
     const times = args.at !== undefined
       ? [{ s: list[0], t: (args.scene ? list[0].start : 0) + Number(args.at) }]
       : list.flatMap((s) => [0.2, 0.55, 0.9].map((k) => ({ s, t: s.start + (s.end - s.start) * k })));
+    if (thumb) {
+      await page.evaluate((title) => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:absolute;left:6%;right:6%;top:9%;font-family:"Space Grotesk",sans-serif;font-weight:700;' +
+          'font-size:calc(var(--h) * 0.062);line-height:1.02;color:#fff;text-transform:uppercase;letter-spacing:-0.01em;' +
+          '-webkit-text-stroke:calc(var(--h) * 0.006) #05070b;paint-order:stroke fill;text-shadow:0 0.6vh 2.4vh rgba(0,0,0,.6)';
+        document.getElementById('stage').style.setProperty('--h', `${document.getElementById('stage').clientHeight}px`);
+        d.innerHTML = title.replace(/\*(.+?)\*/g, '<span style="color:#ffb020">$1</span>');
+        document.getElementById('stage').appendChild(d);
+      }, args.title ?? episode.thumb_title ?? episode.title);
+    }
     for (const { s, t } of times) {
-      const f = join(sdir, `${s.id}_${t.toFixed(2)}s.png`);
+      const f = thumb ? join(outDir, `${episode.episode_id}_thumb.png`) : join(sdir, `${s.id}_${t.toFixed(2)}s.png`);
       writeFileSync(f, await shot(t));
       console.log(f);
     }

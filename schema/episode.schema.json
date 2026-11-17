@@ -1,0 +1,495 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Episódio do Camada Zero",
+  "type": "object",
+  "required": [
+    "episode_id",
+    "title",
+    "scenes"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "episode_id": {
+      "type": "string",
+      "pattern": "^ep\\d{2}_[a-z0-9_]+$",
+      "description": "ex.: ep02_ram"
+    },
+    "title": {
+      "type": "string"
+    },
+    "outfit": {
+      "enum": [
+        "none",
+        "esd",
+        "hoodie",
+        "goggles"
+      ]
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "narration"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "hook",
+              "curious",
+              "explain",
+              "payoff",
+              "outro"
+            ]
+          },
+          "environment": {
+            "enum": [
+              "bancada",
+              "chip",
+              "vazio"
+            ]
+          },
+          "layer": {
+            "type": "string",
+            "description": "\"camada N · nome\" (a transição auto usa o N)"
+          },
+          "narration": {
+            "type": "string",
+            "description": "|| = pausa; *palavra* = ênfase na legenda"
+          },
+          "hud_text": {
+            "type": "string",
+            "maxLength": 24
+          },
+          "camera": {
+            "enum": [
+              "hero",
+              "closeup",
+              "face",
+              "prop",
+              "macro",
+              "top",
+              "low"
+            ]
+          },
+          "camera_move": {
+            "enum": [
+              "auto",
+              "static",
+              "push",
+              "pull",
+              "orbit",
+              "crane",
+              "drift"
+            ]
+          },
+          "transition": {
+            "enum": [
+              "auto",
+              "cut",
+              "whip",
+              "dive",
+              "rise"
+            ]
+          },
+          "focus": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            ]
+          },
+          "shots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "at"
+              ],
+              "properties": {
+                "at": {
+                  "type": "number"
+                },
+                "camera": {
+                  "enum": [
+                    "hero",
+                    "closeup",
+                    "face",
+                    "prop",
+                    "macro",
+                    "top",
+                    "low"
+                  ]
+                },
+                "camera_move": {
+                  "enum": [
+                    "auto",
+                    "static",
+                    "push",
+                    "pull",
+                    "orbit",
+                    "crane",
+                    "drift"
+                  ]
+                },
+                "focus": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  ]
+                },
+                "blend": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "nibble": {
+            "type": "object",
+            "properties": {
+              "pos": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "rotY": {
+                "type": "number"
+              },
+              "anim": {
+                "enum": [
+                  "idle",
+                  "talk",
+                  "point",
+                  "think",
+                  "shock",
+                  "celebrate",
+                  "wave",
+                  "press",
+                  "roll_in"
+                ]
+              },
+              "mood": {
+                "enum": [
+                  "neutral",
+                  "happy",
+                  "excited",
+                  "serious",
+                  "confused",
+                  "sad"
+                ]
+              },
+              "look": {
+                "enum": [
+                  "camera",
+                  "focus"
+                ]
+              },
+              "visible": {
+                "type": "boolean"
+              },
+              "scale": {
+                "type": "number"
+              },
+              "target": {
+                "type": "object",
+                "required": [
+                  "obj"
+                ],
+                "properties": {
+                  "obj": {
+                    "type": "string"
+                  },
+                  "local": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "at": {
+                    "type": "number"
+                  },
+                  "hold": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "text",
+                "anchor"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "anchor": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "obj"
+                      ],
+                      "properties": {
+                        "obj": {
+                          "type": "string"
+                        },
+                        "local": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        }
+                      }
+                    }
+                  ]
+                },
+                "side": {
+                  "enum": [
+                    "left",
+                    "right"
+                  ]
+                },
+                "at": {
+                  "type": "number"
+                },
+                "lift": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "overlays": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "counter",
+                    "code"
+                  ]
+                },
+                "at": {
+                  "type": "number"
+                },
+                "dur": {
+                  "type": "number"
+                },
+                "from": {
+                  "type": "number"
+                },
+                "to": {
+                  "type": "number"
+                },
+                "format": {
+                  "enum": [
+                    "dec",
+                    "hex",
+                    "bin"
+                  ]
+                },
+                "digits": {
+                  "type": "integer"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "char_time": {
+                  "type": "number"
+                },
+                "pos": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            }
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "type"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "cpu",
+                    "ram",
+                    "chip",
+                    "key",
+                    "key_matrix",
+                    "cable",
+                    "bit_grid",
+                    "transistor",
+                    "screen",
+                    "particles",
+                    "box",
+                    "sphere",
+                    "cylinder",
+                    "arrow",
+                    "ssd",
+                    "fan",
+                    "gpu",
+                    "hdd",
+                    "gate",
+                    "mem_cells",
+                    "packet",
+                    "terminal"
+                  ]
+                },
+                "pos": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "rot": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "scale": {
+                  "oneOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  ]
+                },
+                "float": {
+                  "type": "boolean"
+                },
+                "appear_at": {
+                  "type": "number"
+                },
+                "kind": {
+                  "enum": [
+                    "sparks",
+                    "flow",
+                    "dust"
+                  ]
+                },
+                "keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "t"
+                    ],
+                    "properties": {
+                      "t": {
+                        "type": "number"
+                      },
+                      "pos": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "rot": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "scale": {
+                        "oneOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

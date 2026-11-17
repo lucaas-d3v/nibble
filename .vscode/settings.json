@@ -1,0 +1,3 @@
+{
+  "json.schemas": [{ "fileMatch": ["episodes/*/script.json"], "url": "./schema/episode.schema.json" }]
+}

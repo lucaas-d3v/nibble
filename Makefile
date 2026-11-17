@@ -1,12 +1,15 @@
 EP ?= ep01_tecla
 ZIG ?= zig
 
-.PHONY: help install dev validate stills preview render render60 smooth master voice voices video wasm
+.PHONY: help install dev new schema thumb validate stills preview render render60 smooth master voice voices video wasm
 
 help:
 	@echo "make install             instala dependências"
 	@echo "make dev                 prévia no navegador: http://127.0.0.1:5173/?ep=$(EP)&fps=1"
+	@echo "make new EP=ep02_x TITLE=\"...\"  cria um episódio válido para começar"
 	@echo "make validate EP=...     confere o roteiro"
+	@echo "make thumb EP=... [SCENE=n AT=s]  thumbnail com o título (PNG 1080x1920)"
+	@echo "make schema              regenera o esquema JSON do roteiro"
 	@echo "make stills EP=... [SCENE=n]   3 PNGs por cena"
 	@echo "make preview EP=... [SCENE=n]  vídeo rápido (540x960, 15 fps)"
 	@echo "make render EP=...       vídeo final (1080x1920, 30 fps, 16 amostras)"
@@ -24,6 +27,15 @@ install:
 
 dev:
 	npx vite
+
+new:
+	node pipeline/new.mjs $(EP) $(if $(TITLE),--title "$(TITLE)",)
+
+schema:
+	node pipeline/schema.mjs
+
+thumb:
+	node pipeline/render.mjs $(EP) --thumb --scene $(or $(SCENE),1) --at $(or $(AT),2)
 
 validate:
 	node pipeline/validate.mjs $(EP)

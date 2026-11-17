@@ -33,17 +33,17 @@ Ordem por impacto no vídeo final. ✅ feito · 🔶 parcial · ⬜ a fazer · �
 ## Engenharia
 | | Item | Estado |
 |---|---|---|
-| 15 | CI: validar, compilar Zig, quadros de referência, fluidez | ⬜ |
-| 16 | Esquema JSON do roteiro (autocompletar no editor) | ⬜ |
+| 15 | CI: validar, compilar Zig, esquema em dia, fluidez, quadros de conferência | ✅ (comparação automática com imagem de referência: ⬜) |
+| 16 | Esquema JSON do roteiro (autocompletar no editor) | ✅ `schema/`, `.vscode/` |
 | 17 | Cache em disco das texturas geradas, compressão KTX2 | ⬜ |
 | 18 | Quebrar `environments.js` e `prefabs/index.js` em arquivos | ⬜ |
-| 19 | `make new EP=...` | ⬜ |
+| 19 | `make new EP=...` | ✅ |
 
 ## Canal
 | | Item | Estado |
 |---|---|---|
 | 20 | Nome: repositório `nibble` × motor "Camada Zero" | 🖥️ decisão do Lucas |
-| 21 | Thumbnail automática (`make thumb`) | ⬜ |
+| 21 | Thumbnail automática (`make thumb`) | ✅ |
 | 22 | Legenda `.srt` | ✅ |
 | 23 | Versão 16:9 para vídeo longo | ⬜ |
 
