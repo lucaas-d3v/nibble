@@ -41,7 +41,9 @@ const samples = Number(args.samples ?? (preview ? 1 : stills ? 8 : 16));
 const aperture = Number(args.aperture ?? (preview ? 0 : 0.012));
 // O encoder sai do que o ffmpeg desta máquina tem (pipeline/ffmpeg.mjs); escolhido antes de abrir o
 // Chrome, pra um ffmpeg sem encoder parar na hora, com a explicação, e não no meio do render.
-const enc = stills ? null : videoEncoder({ codec: args.codec, preview, crf: args.crf, qp: args.qp });
+let enc = null;
+try { enc = stills ? null : videoEncoder({ codec: args.codec, preview, crf: args.crf, qp: args.qp }); }
+catch (e) { console.error(`ERRO   ${e.message}`); process.exit(1); }
 if (enc) {
   console.log(`Encoder: ${enc.label}`);
   if (enc.skipped.length) console.warn(`  reserva: ${enc.skipped.join('; ')}.\n  A qualidade final é a do libx264; veja a seção Rodar do README.`);

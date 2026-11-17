@@ -14,6 +14,8 @@ import { FFMPEG, filterNames, requireEncoder, requireFilters } from './ffmpeg.mj
 import { VOICE_OFFSET } from '../shared/timeline.js';
 
 const args = parseArgs(process.argv.slice(2));
+// o que falta no ffmpeg sai como mensagem, sem stack trace por cima
+const orExit = (fn) => { try { return fn(); } catch (e) { console.error(`ERRO   ${e.message}`); process.exit(1); } };
 const dir = resolveEpisode(args._[0]);
 const episode = loadEpisode(dir);
 const { timeline, audioFiles } = timelineFor(dir, episode);
@@ -40,7 +42,7 @@ timeline.scenes.forEach((s) => {
 
 // efeitos e fundos
 if (!args['no-sfx']) {
-  const lib = ensureSfx(join(ROOT, '.cache', 'sfx'));
+  const lib = orExit(() => ensureSfx(join(ROOT, '.cache', 'sfx')));
   const { events, beds } = sfxEvents(episode, timeline);
   for (const e of events) {
     const k = input(lib[e.sound]);
@@ -74,8 +76,7 @@ if (music) {
 if (!mix.length) { console.log('Nada para mixar (sem voz, sem efeitos, sem trilha). Vídeo mudo em', video); process.exit(0); }
 filters.push(`${mix.join('')}amix=inputs=${mix.length}:normalize=0,apad,atrim=0:${total.toFixed(3)},loudnorm=I=-14:TP=-1.5:LRA=11[out]`);
 
-requireFilters(filterNames(filters.join(';')), 'make video (mixagem)');
-requireEncoder('aac', 'make video (áudio do mp4)');
+orExit(() => { requireFilters(filterNames(filters.join(';')), 'make video (mixagem)'); requireEncoder('aac', 'make video (áudio do mp4)'); });
 const out = join(dir, 'output', `${episode.episode_id}_final.mp4`);
 execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', video, ...inputs, '-filter_complex', filters.join(';'),
   '-map', '0:v', '-map', '[out]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out], { stdio: 'inherit' });
