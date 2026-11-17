@@ -1,0 +1,167 @@
+{
+  "episode_id": "ep00_nibble",
+  "title": "Rolo de teste do Nibble",
+  "outfit": "none",
+  "scenes": [
+    {
+      "id": "a_roll",
+      "tone": "hook",
+      "environment": "vazio",
+      "narration": "Opa, cheguei. || Eu sou o Nibble, e hoje a gente vai descer até o silício.",
+      "hud_text": "roll_in",
+      "camera": "closeup",
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "roll_in"
+      }
+    },
+    {
+      "id": "b_talk",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Quando eu falo, as mãos acompanham a fala. || Cada gesto entra e sai com peso, sem trava nenhuma, e o olhar volta pra você.",
+      "hud_text": "talk",
+      "camera": "closeup",
+      "focus": [
+        1.2,
+        1.0,
+        0
+      ],
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "talk"
+      }
+    },
+    {
+      "id": "c_point",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Olha isso aqui. || Esse é o processador, e ele trabalha muito mais rápido do que parece.",
+      "hud_text": "point",
+      "camera": "hero",
+      "nibble": {
+        "pos": [
+          -0.45,
+          0,
+          0.7
+        ],
+        "rotY": 0.35,
+        "anim": "point"
+      },
+      "objects": [
+        {
+          "id": "proc",
+          "type": "cpu",
+          "pos": [
+            0.3,
+            1.7,
+            0
+          ],
+          "rot": [
+            1.0,
+            -0.25,
+            0
+          ],
+          "scale": 1.0,
+          "float": true
+        }
+      ]
+    },
+    {
+      "id": "d_think",
+      "tone": "curious",
+      "environment": "vazio",
+      "narration": "Hmm. || Mas como será que ele sabe qual tecla você apertou?",
+      "hud_text": "think",
+      "camera": "closeup",
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "think"
+      }
+    },
+    {
+      "id": "e_shock",
+      "tone": "hook",
+      "environment": "vazio",
+      "narration": "Peraí! || Isso acontece mil vezes por segundo?",
+      "hud_text": "shock",
+      "camera": "closeup",
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "shock"
+      }
+    },
+    {
+      "id": "f_celebrate",
+      "tone": "payoff",
+      "environment": "vazio",
+      "narration": "É isso! || Agora você sabe o que acontece por baixo.",
+      "hud_text": "celebrate",
+      "camera": "closeup",
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "celebrate"
+      }
+    },
+    {
+      "id": "g_idle",
+      "tone": "outro",
+      "environment": "vazio",
+      "narration": "Até a próxima camada.",
+      "hud_text": "idle",
+      "camera": "closeup",
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "idle"
+      }
+    },
+    {
+      "id": "h_retrato",
+      "tone": "outro",
+      "environment": "vazio",
+      "narration": "Prazer, eu sou o Nibble.",
+      "hud_text": "retrato",
+      "camera": "face",
+      "nibble": {
+        "pos": [
+          0,
+          0,
+          0.4
+        ],
+        "rotY": 0.62,
+        "anim": "idle",
+        "look": "camera"
+      }
+    }
+  ]
+}

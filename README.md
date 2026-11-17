@@ -35,7 +35,30 @@ com GPU leva minutos. Se o Chrome não estiver num caminho padrão, defina `CHRO
 | Codificação | x264 CRF 14 `-tune animation`, conversão BT.709 explícita; `--codec prores` gera master 4444 10 bits; `--codec x265` gera 10 bits |
 | Determinismo | Tudo é função de `t`. O mesmo quadro sai idêntico em qualquer ordem, então dá para renderizar só uma cena |
 
-Ajustes por linha de comando: `--samples`, `--aperture`, `--fps`, `--scale`, `--crf`, `--from`, `--to`, `--scene`.
+Ajustes por linha de comando: `--samples`, `--aperture`, `--fps`, `--scale`, `--crf`, `--from`, `--to`, `--scene`,
+`--clean` (sem HUD) e `--at` (um quadro só, com `--stills`). Thumbnail ou foto de perfil:
+
+```bash
+node pipeline/render.mjs ep00_nibble --stills --scene 8 --at 2.2 --scale 1 --samples 16 --clean
+```
+
+## O Nibble
+
+Tatu-bola em pé, modelado inteiro em código (`engine/src/character/`):
+
+- **Forma** (`geometry.js`): cabeça é uma superfície de revolução com o focinho caído; escudo cefálico
+  e carapaça são fatias de elipsoide com escamas em textura procedural (relevo + sulcos). Carapaça em
+  cinco segmentos sobrepostos: escudo, três bandas de cobre, escudo; a banda do meio tem o filete âmbar.
+- **Olhos**: íris e pupila desenhadas no shader do globo ocular, então o olho gira de verdade e a pupila
+  dilata. Pálpebras são calotas; inclinar a de baixo para a frente faz o olho sorridente.
+- **Movimento** (`motion.js`): cada animação só define alvos. Molas amortecidas perseguem os alvos a
+  120 Hz, com o alvo suavizado antes (entrada em curva S). Orelhas, cauda e o achatamento ao pousar são
+  ação secundária: reagem à aceleração da cabeça e do corpo. A simulação fica em cache por cena, então
+  `renderAtTime(t)` continua determinístico em qualquer ordem.
+- **Fala**: a boca abre por sílaba estimada a partir das legendas; com áudio real, as durações
+  passam a vir dos arquivos e a sincronia acompanha.
+
+`episodes/ep00_nibble` é o rolo de teste: uma cena por animação, mais o retrato.
 
 ## Onde entra o Zig
 
@@ -73,6 +96,7 @@ e inclua o nome em `shared/catalog.js`.
 ## Estado
 
 Funciona de ponta a ponta com o episódio de exemplo. Falta: narração, trilha e efeitos sonoros,
-mais prefabs (SSD, placa-mãe, pilha de memória), e transição entre cenas além do corte seco.
+mais prefabs (SSD, placa-mãe, pilha de memória), transição entre cenas além do corte seco, e boca
+sincronizada com fonemas do áudio real (hoje é por sílaba estimada do texto).
 
 Licença MIT.

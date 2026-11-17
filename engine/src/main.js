@@ -6,11 +6,12 @@ import '@fontsource/jetbrains-mono/600.css';
 import { RenderPipeline } from './render/pipeline.js';
 import { Nibble } from './character/nibble.js';
 import { buildEnvironment } from './stage/environments.js';
-import { applyCamera, FOV } from './stage/camera.js';
+import { applyCamera, cameraPose, FOV } from './stage/camera.js';
 import { buildObject } from './prefabs/index.js';
 import { Hud } from './hud/hud.js';
 import { loadSim } from './sim/sim.js';
 import { buildTimeline } from '../../shared/timeline.js';
+import { hash } from './util.js';
 
 const params = new URLSearchParams(location.search);
 const stageEl = document.getElementById('stage');
@@ -21,7 +22,7 @@ const hud = new Hud(document.getElementById('hud'));
 const nibble = new Nibble();
 scene.add(nibble.root);
 
-const state = { episode: null, timeline: null, scenes: [], envs: new Map(), current: -1 };
+const state = { episode: null, timeline: null, scenes: [], envs: new Map(), current: -1, loads: 0 };
 const quality = { shadowSize: Number(params.get('shadow') ?? 2048) };
 const tmp = new THREE.Vector3();
 
@@ -36,6 +37,26 @@ function focusOf(cfg, built) {
   return obj ? obj.root.position.clone() : new THREE.Vector3(0.2, 1.6, 0);
 }
 
+// Boca: abre e fecha por sílaba dentro de cada trecho de legenda; fechada nas pausas.
+const VOWELS = /[aeiouáéíóúâêôãõàü]+/gi;
+function makeSpeech(entry) {
+  const caps = entry.captions.map((c) => ({
+    s: c.start - entry.start, e: c.end - entry.start,
+    syl: Math.max(1, (c.text.match(VOWELS) || []).length), seed: c.start * 13.7,
+  }));
+  return {
+    mouth(lt) {
+      for (const c of caps) {
+        if (lt < c.s || lt >= c.e) continue;
+        const u = ((lt - c.s) / (c.e - c.s)) * c.syl, i = Math.floor(u);
+        return (0.5 + 0.5 * hash(i * 7.3 + c.seed)) * Math.sin(Math.PI * (u - i)) ** 0.8;
+      }
+      return 0;
+    },
+    speaking: (lt) => caps.some((c) => lt >= c.s - 0.15 && lt < c.e + 0.35),
+  };
+}
+
 function load(episode, timeline) {
   for (const s of state.scenes) scene.remove(s.group);
   for (const e of state.envs.values()) scene.remove(e.group);
@@ -43,6 +64,8 @@ function load(episode, timeline) {
   state.episode = episode;
   state.timeline = timeline ?? buildTimeline(episode);
   nibble.setOutfit(episode.outfit ?? 'none');
+  nibble.resetMotion();
+  state.loads++;
 
   state.scenes = episode.scenes.map((cfg) => {
     const envName = cfg.environment ?? 'bancada';
@@ -63,6 +86,7 @@ function load(episode, timeline) {
     scene.add(group);
     const built = { cfg, group, objects, env: envName };
     built.focus = focusOf(cfg, built);
+    built.hasFocus = !!(cfg.focus ?? cfg.objects?.length);
     return built;
   });
   state.current = -1;
@@ -93,9 +117,18 @@ function updateWorld(t) {
   camera.updateProjectionMatrix();
   const ncfg = sc.cfg.nibble ?? {};
   const np = ncfg.pos ?? [-0.5, 0, 0.5];
-  applyCamera(camera, cam, lt, dur, { x: np[0], y: np[1], z: np[2] }, sc.focus);
+  const nPos = { x: np[0], y: np[1], z: np[2] };
+  applyCamera(camera, cam, lt, dur, nPos, sc.focus);
   nibble.root.visible = ncfg.visible !== false;
-  nibble.update(lt, dur, ncfg, camera.position);
+  if (!sc.speech) sc.speech = makeSpeech(entry);
+  nibble.update(lt, dur, ncfg, {
+    key: `${state.loads}:${i}`,
+    seed: 1 + i * 3.17 + (state.episode.episode_id.length % 7),
+    camAt: (t) => cameraPose(cam, t, dur, nPos, sc.focus).pos,
+    focus: sc.hasFocus ? sc.focus.toArray() : null,
+    mouth: sc.speech.mouth,
+    speaking: sc.speech.speaking,
+  });
   for (const o of Object.values(sc.objects)) o.update(lt);
   return { i, entry, sc, lt };
 }
@@ -131,7 +164,8 @@ async function boot() {
     time: 0,
     load,
     renderAtTime(t) { this.time = t; renderAtTime(t); },
-    configure({ samples, shutter, aperture, fps }) {
+    configure({ samples, shutter, aperture, fps, hud }) {
+      if (hud !== undefined) document.getElementById('hud').style.display = hud ? '' : 'none';
       if (samples) pipeline.samples = samples;
       if (shutter !== undefined) pipeline.shutter = shutter;
       if (aperture !== undefined) pipeline.aperture = aperture;

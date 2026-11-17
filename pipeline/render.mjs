@@ -5,9 +5,11 @@
 //   node pipeline/render.mjs ep01_tecla --preview       # rápido: 540x960, 15 fps, 1 amostra
 //   node pipeline/render.mjs ep01_tecla --scene 3       # só a cena 3
 //   node pipeline/render.mjs ep01_tecla --stills        # 3 PNGs por cena, para conferir enquadramento
+//   node pipeline/render.mjs ep01_tecla --stills --scene 2 --at 1.5   # um quadro só
 //   node pipeline/render.mjs ep01_tecla --codec prores  # master ProRes 4444 para editar depois
 //
 // Opções: --samples N  --fps N  --scale 0.5  --from s  --to s  --aperture 0.02  --crf 14
+//         --clean (sem HUD: para thumbnail e foto de perfil)
 import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -69,15 +71,18 @@ let ffmpeg = null;
 try {
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction(() => window.CZ?.ready, null, { timeout: 60_000 });
-  await page.evaluate(([ep, tl, cfg]) => { window.CZ.configure(cfg); window.CZ.load(ep, tl); }, [episode, timeline, { samples, aperture, fps }]);
+  await page.evaluate(([ep, tl, cfg]) => { window.CZ.configure(cfg); window.CZ.load(ep, tl); }, [episode, timeline, { samples, aperture, fps, hud: !args.clean }]);
 
-  const shot = (t) => page.evaluate((tt) => window.CZ.renderAtTime(tt), t).then(() => page.screenshot({ type: 'png' }));
+  const shot = (t) => page.evaluate((tt) => window.CZ.renderAtTime(tt), t).then(() => page.screenshot({ type: 'png', timeout: 0 }));
 
   if (stills) {
     const sdir = join(outDir, 'stills'); mkdirSync(sdir, { recursive: true });
     const list = args.scene ? [timeline.scenes[Number(args.scene) - 1]] : timeline.scenes;
-    for (const s of list) for (const k of [0.2, 0.55, 0.9]) {
-      const t = s.start + (s.end - s.start) * k;
+    // --at t: um quadro só, no tempo t (segundos desde o início da cena se --scene, senão do episódio)
+    const times = args.at !== undefined
+      ? [{ s: list[0], t: (args.scene ? list[0].start : 0) + Number(args.at) }]
+      : list.flatMap((s) => [0.2, 0.55, 0.9].map((k) => ({ s, t: s.start + (s.end - s.start) * k })));
+    for (const { s, t } of times) {
       const f = join(sdir, `${s.id}_${t.toFixed(2)}s.png`);
       writeFileSync(f, await shot(t));
       console.log(f);

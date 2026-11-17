@@ -19,7 +19,9 @@ Regras editoriais:
 ## Enquadramento
 
 - Eixo X visível: de **-0.9 a 0.9**. Chão em `y = 0`.
-- Nibble fica embaixo à esquerda: `pos` perto de `[-0.5, 0, 0.7]`, `rotY` entre 0.3 e 0.6.
+- Nibble fica embaixo à esquerda: `pos` perto de `[-0.5, 0, 0.7]`, `rotY` entre 0.4 e 0.7.
+  Virado para a direita, o focinho aparece em 3/4, que é o que faz ele ler como tatu. De frente
+  (`rotY` perto de 0) o focinho aponta para a lente e encurta.
 - O objeto em exibição fica no alto: `y` entre 1.5 e 2.0, `x` entre 0 e 0.35, inclinado para a câmera (`rot[0]` ≈ 1.0 para peças planas).
 - A legenda ocupa a faixa de baixo; não ponha nada importante com `y < 0.3` na frente do Nibble.
 
@@ -30,8 +32,26 @@ Regras editoriais:
 | `outfit` | `none`, `esd` (pulseira antiestática), `hoodie`, `goggles` |
 | `environment` | `bancada` (oficina), `chip` (dentro do silício), `vazio` (estúdio escuro) |
 | `tone` | `hook`, `curious`, `explain`, `payoff`, `outro` |
-| `camera` | `hero` (plano geral, padrão), `closeup` (rosto do Nibble), `prop` e `macro` (no objeto de `focus`), `top`, `low` |
-| `nibble.anim` | `idle`, `talk`, `point`, `think`, `shock`, `celebrate`, `roll_in` (entra rolando; use na primeira cena) |
+| `camera` | `hero` (plano geral, padrão), `closeup` (Nibble da cintura para cima), `face` (rosto; bom para reação e thumbnail), `prop` e `macro` (no objeto de `focus`), `top`, `low` |
+| `nibble.anim` | ver tabela abaixo |
+| `nibble.look` | opcional: `camera` ou `focus` fixa o olhar a cena toda |
+
+### Animações do Nibble
+
+Todas são procedurais e reagem à narração: enquanto há fala, a boca mexe por sílaba, a cabeça
+marca o ritmo, o filete âmbar da carapaça pulsa com a voz e os braços fazem gestos sorteados
+(abrir, apresentar, contar, dar de ombros). Nas pausas (`||`) ele volta ao repouso.
+
+| anim | O que faz |
+|---|---|
+| `roll_in` | Entra rolando como bola, desenrola com um pulinho e abre os braços. Use na primeira cena. |
+| `talk` | Apresentador: gestos de fala, olha para a câmera, de vez em quando olha o objeto. |
+| `point` | Aponta para o objeto de `focus` com o braço do lado dele, olha, depois volta para a câmera. Após ~3 s vira `talk`. |
+| `think` | Mão sob o focinho, cabeça inclinada, olhar para o alto; o filete pisca como se estivesse processando. |
+| `shock` | Pulo de susto com as mãos para cima, pupilas pequenas. Depois de ~2,5 s volta a falar ainda surpreso. |
+| `celebrate` | Três pulinhos com os braços para cima e olhos sorrindo, depois fala animado. |
+| `wave` | Acena com o braço do lado da câmera. Bom para abertura ou encerramento. |
+| `idle` | Respira, troca o peso de perna, olha em volta. |
 
 ### Objetos (`objects[].type`)
 
