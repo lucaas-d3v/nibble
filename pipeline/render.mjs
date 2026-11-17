@@ -8,13 +8,16 @@
 //   node pipeline/render.mjs ep01_tecla --stills --scene 2 --at 1.5   # um quadro só
 //   node pipeline/render.mjs ep01_tecla --codec prores  # master ProRes 4444 para editar depois
 //
-// Opções: --samples N  --fps N  --scale 0.5  --from s  --to s  --aperture 0.02  --crf 14
+// Opções: --samples N  --fps N  --scale 0.5  --from s  --to s  --aperture 0.02
+//         --codec x264|x265|h264_vaapi|hevc_vaapi|prores (sem ele, o melhor que o ffmpeg tiver)
+//         --crf 14 (x264/x265)  --qp 16 (VAAPI)
 //         --clean (sem HUD: para thumbnail e foto de perfil)  --aspect 16:9 (vídeo longo)
 import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createServer } from 'vite';
 import { launchBrowser } from './browser.mjs';
+import { FFMPEG, BT709_TAGS, videoEncoder } from './ffmpeg.mjs';
 import { ROOT, resolveEpisode, loadEpisode, timelineFor, parseArgs } from './common.mjs';
 import { validate } from './validate.mjs';
 
@@ -36,7 +39,13 @@ const wide = args.aspect === '16:9';
 const width = Math.round((wide ? 1920 : 1080) * scale / 2) * 2, height = Math.round((wide ? 1080 : 1920) * scale / 2) * 2;
 const samples = Number(args.samples ?? (preview ? 1 : stills ? 8 : 16));
 const aperture = Number(args.aperture ?? (preview ? 0 : 0.012));
-const codec = args.codec ?? 'x264';
+// O encoder sai do que o ffmpeg desta máquina tem (pipeline/ffmpeg.mjs); escolhido antes de abrir o
+// Chrome, pra um ffmpeg sem encoder parar na hora, com a explicação, e não no meio do render.
+const enc = stills ? null : videoEncoder({ codec: args.codec, preview, crf: args.crf, qp: args.qp });
+if (enc) {
+  console.log(`Encoder: ${enc.label}`);
+  if (enc.skipped.length) console.warn(`  reserva: ${enc.skipped.join('; ')}.\n  A qualidade final é a do libx264; veja a seção Rodar do README.`);
+}
 
 const { timeline } = timelineFor(dir, episode, fps);
 let from = Number(args.from ?? 0), to = Number(args.to ?? timeline.total_duration);
@@ -104,24 +113,22 @@ try {
   } else {
     const total = Math.ceil((to - from) * fps);
     const suffix = (preview ? '_preview' : '') + (wide ? '_16x9' : '') + (args.scene ? `_cena${String(args.scene).padStart(2, '0')}` : '');
-    const out = join(outDir, `video${suffix}.${codec === 'prores' ? 'mov' : 'mp4'}`);
-    const enc = {
-      // CRF baixo + tune animation: gradientes limpos, sem blocagem nas áreas escuras
-      x264: ['-c:v', 'libx264', '-preset', preview ? 'veryfast' : 'slow', '-crf', String(args.crf ?? (preview ? 20 : 14)), '-tune', 'animation', '-pix_fmt', 'yuv420p', '-profile:v', 'high'],
-      x265: ['-c:v', 'libx265', '-preset', 'slow', '-crf', String(args.crf ?? 16), '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1'],
-      prores: ['-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuv444p10le', '-vendor', 'apl0'],
-    }[codec];
-    if (!enc) throw new Error(`codec desconhecido: ${codec} (x264, x265, prores)`);
-    ffmpeg = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'png', '-framerate', String(fps), '-i', '-',
-      // conversão RGB->YUV explícita em BT.709: sem isso as cores lavam em alguns players
-      '-vf', 'scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int',
-      '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
-      ...enc, '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+    const out = join(outDir, `video${suffix}.${enc.ext}`);
+    ffmpeg = spawn(FFMPEG, ['-y', '-loglevel', 'error', ...enc.pre, '-f', 'image2pipe', '-c:v', 'png', '-framerate', String(fps), '-i', '-',
+      '-vf', enc.vf, ...BT709_TAGS, ...enc.args, '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+    // se o ffmpeg morrer, o erro que importa é o dele (código de saída), não o EPIPE da escrita
+    ffmpeg.stdin.on('error', () => {});
     const done = new Promise((res, rej) => ffmpeg.on('close', (c) => (c === 0 ? res() : rej(new Error(`ffmpeg saiu com código ${c}`)))));
+    done.catch(() => {}); // o erro é lido no `await done` lá embaixo, depois de fechar o laço
+    // espera o ffmpeg esvaziar a fila (ou morrer)
+    const drained = () => new Promise((r) => {
+      const go = () => { ffmpeg.stdin.off('drain', go); ffmpeg.off('close', go); r(); };
+      ffmpeg.stdin.once('drain', go); ffmpeg.once('close', go);
+    });
     const t0 = Date.now();
-    for (let f = 0; f < total; f++) {
+    for (let f = 0; f < total && ffmpeg.exitCode === null; f++) {
       const png = await shot(from + f / fps);
-      if (!ffmpeg.stdin.write(png)) await new Promise((r) => ffmpeg.stdin.once('drain', r));
+      if (!ffmpeg.stdin.write(png)) await drained();
       if (f % 10 === 0 || f === total - 1) {
         const el = (Date.now() - t0) / 1000, eta = (el / (f + 1)) * (total - f - 1);
         process.stdout.write(`\rquadro ${f + 1}/${total}  ${((f + 1) / el).toFixed(2)} qps  faltam ${Math.ceil(eta)}s   `);
@@ -129,7 +136,7 @@ try {
     }
     ffmpeg.stdin.end();
     await done;
-    console.log(`\n${out}  (${width}x${height}, ${fps} fps, ${samples} amostras/quadro, ${codec})`);
+    console.log(`\n${out}  (${width}x${height}, ${fps} fps, ${samples} amostras/quadro, ${enc.encoder}, ${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   }
 } finally {
   if (ffmpeg && !ffmpeg.killed && ffmpeg.exitCode === null) ffmpeg.kill();
