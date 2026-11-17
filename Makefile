@@ -1,15 +1,17 @@
 EP ?= ep01_tecla
 ZIG ?= zig
 
-.PHONY: help install dev validate stills preview render master voice voices video wasm
+.PHONY: help install dev validate stills preview render render60 smooth master voice voices video wasm
 
 help:
 	@echo "make install             instala dependências"
-	@echo "make dev                 prévia no navegador: http://127.0.0.1:5173/?ep=$(EP)"
+	@echo "make dev                 prévia no navegador: http://127.0.0.1:5173/?ep=$(EP)&fps=1"
 	@echo "make validate EP=...     confere o roteiro"
 	@echo "make stills EP=... [SCENE=n]   3 PNGs por cena"
 	@echo "make preview EP=... [SCENE=n]  vídeo rápido (540x960, 15 fps)"
 	@echo "make render EP=...       vídeo final (1080x1920, 30 fps, 16 amostras)"
+	@echo "make render60 EP=...     vídeo final a 60 fps (o dobro do tempo de render)"
+	@echo "make smooth EP=...       procura trancos quadro a quadro a 30 e 60 fps"
 	@echo "make master EP=...       master ProRes 4444"
 	@echo "make voices              lista as vozes da ElevenLabs (precisa ELEVENLABS_API_KEY)"
 	@echo "make voice EP=...        gera a narração de cada cena (ElevenLabs, com cache)"
@@ -34,6 +36,12 @@ preview:
 
 render:
 	node pipeline/render.mjs $(EP) $(if $(SCENE),--scene $(SCENE),)
+
+render60:
+	node pipeline/render.mjs $(EP) --fps 60 $(if $(SCENE),--scene $(SCENE),)
+
+smooth:
+	node pipeline/smoothness.mjs $(EP)
 
 master:
 	node pipeline/render.mjs $(EP) --codec prores

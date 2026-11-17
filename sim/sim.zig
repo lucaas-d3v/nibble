@@ -11,7 +11,11 @@ const STEP: f32 = 1.0 / 120.0;
 
 pub const Kind = enum(u32) { sparks = 0, flow = 1, dust = 2 };
 
-/// x, y, z, vida (0..1) por partícula — lido direto pelo JS como Float32Array.
+/// Estado nos passos fixos.
+var st: [MAX * 4]f32 = undefined;
+/// x, y, z, vida (0..1) por partícula no instante pedido — lido direto pelo JS como Float32Array.
+/// É o estado do último passo avançado pelo resto do passo (a 60 fps com motion blur,
+/// sem isso as sub-amostras caem no mesmo passo de 1/120 s e viram cópias em vez de rastro).
 var out: [MAX * 4]f32 = undefined;
 var vel: [MAX * 3]f32 = undefined;
 var phase: [MAX]f32 = undefined;
@@ -49,28 +53,28 @@ fn reset() void {
                 const up = 0.35 + rand() * 0.65;
                 const r = @sqrt(1.0 - up * up) * p_spread;
                 const s = p_speed * (0.4 + rand() * 0.9);
-                out[o + 0] = 0;
-                out[o + 1] = 0;
-                out[o + 2] = 0;
-                out[o + 3] = 1;
+                st[o + 0] = 0;
+                st[o + 1] = 0;
+                st[o + 2] = 0;
+                st[o + 3] = 1;
                 vel[v + 0] = @cos(a) * r * s;
                 vel[v + 1] = up * s;
                 vel[v + 2] = @sin(a) * r * s;
             },
             .flow => {
-                out[o + 0] = rand() * p_length;
-                out[o + 1] = (rand() - 0.5) * p_spread;
-                out[o + 2] = (rand() - 0.5) * p_spread;
-                out[o + 3] = 1;
+                st[o + 0] = rand() * p_length;
+                st[o + 1] = (rand() - 0.5) * p_spread;
+                st[o + 2] = (rand() - 0.5) * p_spread;
+                st[o + 3] = 1;
                 vel[v + 0] = p_speed * (0.75 + rand() * 0.5);
                 vel[v + 1] = 0;
                 vel[v + 2] = 0;
             },
             .dust => {
-                out[o + 0] = (rand() - 0.5) * p_length;
-                out[o + 1] = rand() * p_spread;
-                out[o + 2] = (rand() - 0.5) * p_length;
-                out[o + 3] = 0.3 + rand() * 0.7;
+                st[o + 0] = (rand() - 0.5) * p_length;
+                st[o + 1] = rand() * p_spread;
+                st[o + 2] = (rand() - 0.5) * p_length;
+                st[o + 3] = 0.3 + rand() * 0.7;
                 vel[v + 0] = (rand() - 0.5) * p_speed;
                 vel[v + 1] = (rand() - 0.2) * p_speed * 0.5;
                 vel[v + 2] = (rand() - 0.5) * p_speed;
@@ -86,43 +90,43 @@ fn step() void {
         const v = i * 3;
         switch (kind) {
             .sparks => {
-                if (out[o + 3] <= 0) continue;
+                if (st[o + 3] <= 0) continue;
                 vel[v + 1] -= 6.5 * STEP;
-                out[o + 0] += vel[v + 0] * STEP;
-                out[o + 1] += vel[v + 1] * STEP;
-                out[o + 2] += vel[v + 2] * STEP;
-                if (out[o + 1] < p_floor and vel[v + 1] < 0) {
-                    out[o + 1] = p_floor;
+                st[o + 0] += vel[v + 0] * STEP;
+                st[o + 1] += vel[v + 1] * STEP;
+                st[o + 2] += vel[v + 2] * STEP;
+                if (st[o + 1] < p_floor and vel[v + 1] < 0) {
+                    st[o + 1] = p_floor;
                     vel[v + 1] *= -0.42;
                     vel[v + 0] *= 0.7;
                     vel[v + 2] *= 0.7;
                 }
-                out[o + 3] -= STEP / (0.7 + phase[i] * 0.9);
-                if (out[o + 3] < 0) out[o + 3] = 0;
+                st[o + 3] -= STEP / (0.7 + phase[i] * 0.9);
+                if (st[o + 3] < 0) st[o + 3] = 0;
             },
             .flow => {
-                out[o + 0] += vel[v + 0] * STEP;
-                if (out[o + 0] > p_length) out[o + 0] -= p_length;
+                st[o + 0] += vel[v + 0] * STEP;
+                if (st[o + 0] > p_length) st[o + 0] -= p_length;
                 const w = time * 3.0 + phase[i] * 6.2831853;
-                out[o + 1] += @sin(w) * 0.02 * p_spread * STEP * 4.0;
-                out[o + 2] += @cos(w * 1.3) * 0.02 * p_spread * STEP * 4.0;
+                st[o + 1] += @sin(w) * 0.02 * p_spread * STEP * 4.0;
+                st[o + 2] += @cos(w * 1.3) * 0.02 * p_spread * STEP * 4.0;
                 // some nas pontas para não "estourar" ao reciclar
-                const u = out[o + 0] / p_length;
+                const u = st[o + 0] / p_length;
                 const edge = if (u < 0.5) u else 1.0 - u;
-                out[o + 3] = if (edge < 0.08) edge / 0.08 else 1.0;
+                st[o + 3] = if (edge < 0.08) edge / 0.08 else 1.0;
             },
             .dust => {
                 const w = time * 0.6 + phase[i] * 6.2831853;
-                out[o + 0] += (vel[v + 0] + @sin(w) * 0.05) * STEP;
-                out[o + 1] += (vel[v + 1] + @cos(w * 0.7) * 0.03) * STEP;
-                out[o + 2] += (vel[v + 2] + @sin(w * 1.1) * 0.05) * STEP;
+                st[o + 0] += (vel[v + 0] + @sin(w) * 0.05) * STEP;
+                st[o + 1] += (vel[v + 1] + @cos(w * 0.7) * 0.03) * STEP;
+                st[o + 2] += (vel[v + 2] + @sin(w * 1.1) * 0.05) * STEP;
                 const half = p_length * 0.5;
-                if (out[o + 0] > half) out[o + 0] -= p_length;
-                if (out[o + 0] < -half) out[o + 0] += p_length;
-                if (out[o + 2] > half) out[o + 2] -= p_length;
-                if (out[o + 2] < -half) out[o + 2] += p_length;
-                if (out[o + 1] > p_spread) out[o + 1] -= p_spread;
-                if (out[o + 1] < 0) out[o + 1] += p_spread;
+                if (st[o + 0] > half) st[o + 0] -= p_length;
+                if (st[o + 0] < -half) st[o + 0] += p_length;
+                if (st[o + 2] > half) st[o + 2] -= p_length;
+                if (st[o + 2] < -half) st[o + 2] += p_length;
+                if (st[o + 1] > p_spread) st[o + 1] -= p_spread;
+                if (st[o + 1] < 0) st[o + 1] += p_spread;
             },
         }
     }
@@ -148,6 +152,35 @@ export fn sim_init(k: u32, n: u32, seed: u32, speed: f32, spread: f32, length: f
 export fn sim_advance_to(t: f32) void {
     if (t < time) reset();
     while (time + STEP <= t) step();
+    // resto do passo: avança a saída sem mexer no estado (determinístico)
+    const r = t - time;
+    var i: usize = 0;
+    while (i < count) : (i += 1) {
+        const o = i * 4;
+        const v = i * 3;
+        out[o + 0] = st[o + 0] + vel[v + 0] * r;
+        out[o + 1] = st[o + 1] + vel[v + 1] * r;
+        out[o + 2] = st[o + 2] + vel[v + 2] * r;
+        out[o + 3] = st[o + 3];
+        switch (kind) {
+            .sparks => {
+                if (st[o + 3] <= 0) continue;
+                out[o + 1] -= 3.25 * r * r;
+                if (out[o + 1] < p_floor) out[o + 1] = p_floor;
+                out[o + 3] = @max(0, st[o + 3] - r / (0.7 + phase[i] * 0.9));
+            },
+            .flow => {
+                if (out[o + 0] > p_length) out[o + 0] -= p_length;
+            },
+            .dust => {
+                const half = p_length * 0.5;
+                if (out[o + 0] > half) out[o + 0] -= p_length;
+                if (out[o + 0] < -half) out[o + 0] += p_length;
+                if (out[o + 2] > half) out[o + 2] -= p_length;
+                if (out[o + 2] < -half) out[o + 2] += p_length;
+            },
+        }
+    }
 }
 
 export fn sim_buffer() [*]f32 {

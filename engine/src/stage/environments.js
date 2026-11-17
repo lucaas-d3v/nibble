@@ -328,7 +328,7 @@ function chip(q) {
   const streak = new THREE.CapsuleGeometry(0.018, 0.16, 4, 8).rotateZ(Math.PI / 2);
   const pulseA = new THREE.InstancedMesh(streak, glow(PALETTE.amber, 9), paths.length * 2);
   const pulseC = new THREE.InstancedMesh(streak, glow(PALETTE.cyan, 9), paths.length * 2);
-  for (const im of [pulseA, pulseC]) { im.frustumCulled = false; im.castShadow = false; g.add(im); }
+  for (const im of [pulseA, pulseC]) { im.frustumCulled = false; im.castShadow = false; im.userData.noProbe = true; g.add(im); }
   const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), pos = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), zero = new THREE.Vector3(0, 0, 0), X = new THREE.Vector3(1, 0, 0), dir = new THREE.Vector3();
   updaters.push({
     update(t) {

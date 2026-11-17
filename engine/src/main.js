@@ -27,8 +27,10 @@ const state = { episode: null, timeline: null, scenes: [], envs: new Map(), curr
 const quality = { shadowSize: Number(params.get('shadow') ?? 2048) };
 const tmp = new THREE.Vector3();
 
+// Escala da resolução interna (prévia adaptativa). O canvas continua do tamanho da tela.
+let resScale = 1;
 function resize() {
-  pipeline.setSize(stageEl.clientWidth, stageEl.clientHeight);
+  pipeline.setSize(Math.max(2, Math.round(stageEl.clientWidth * resScale)), Math.max(2, Math.round(stageEl.clientHeight * resScale)));
 }
 
 function focusOf(cfg, built) {
@@ -174,6 +176,34 @@ async function boot() {
       if (fps) pipeline.fps = fps;
     },
     get duration() { return state.timeline?.total_duration ?? 0; },
+    /** Posições de mundo de tudo que se move, sem renderizar. Usado pelo verificador de fluidez. */
+    probe(t) {
+      const { i } = updateWorld(t);
+      scene.updateMatrixWorld(true);
+      const w = (o) => o.getWorldPosition(new THREE.Vector3()).toArray();
+      const out = { scene: i, cam: camera.position.toArray(), target: camera.userData.target.toArray() };
+      if (nibble.root.visible) {
+        out.root = w(nibble.root);
+        out.head = w(nibble.head);
+        nibble.arms.forEach((a, k) => { out[`hand${k}`] = w(a.hand); });
+        nibble.legs.forEach((l, k) => { out[`foot${k}`] = w(l.foot); });
+        out.ear = w(nibble.ears[1].children[0]);
+      }
+      const sc = state.scenes[i];
+      for (const [id, o] of Object.entries(sc.objects)) out[`obj:${id}`] = w(o.root);
+      // primeiras partículas de cada emissor (cena e cenário)
+      const m4 = new THREE.Matrix4(), p = new THREE.Vector3();
+      let k = 0;
+      [sc.group, state.envs.get(sc.env).group].forEach((g) => g.traverse((o) => {
+        if (!o.isInstancedMesh || o.userData.noProbe || !o.count) return;
+        for (let j = 0; j < Math.min(3, o.count); j++) {
+          o.getMatrixAt(j, m4); p.setFromMatrixPosition(m4);
+          if (m4.elements[0] > 1e-3) out[`p${k}_${j}`] = p.clone().applyMatrix4(o.matrixWorld).toArray();
+        }
+        k++;
+      }));
+      return out;
+    },
     ready: true,
   };
 
@@ -184,9 +214,36 @@ async function boot() {
   window.CZ.configure({ samples: Number(params.get('samples') ?? 1), aperture: Number(params.get('aperture') ?? 0) });
   load(episode);
   if (params.has('t')) { window.CZ.renderAtTime(Number(params.get('t'))); return; }
+  // Prévia em tempo real. O tempo vem do relógio, não da contagem de quadros: se um quadro
+  // atrasa, a animação não desacelera. Para segurar a taxa alvo (?target=60), a resolução
+  // interna se ajusta sozinha. ?fast=1 desliga oclusão de ambiente e baixa a sombra.
+  // ?fps=1 mostra quadros por segundo, tempo de quadro e escala.
+  const target = Number(params.get('target') ?? 60), budget = 1000 / target;
+  if (params.get('fast') === '1') { pipeline.gtao.enabled = false; pipeline.bloom.strength *= 0.85; }
+  let meter = null;
+  if (params.get('fps') === '1') {
+    meter = document.createElement('div');
+    meter.style.cssText = 'position:absolute;left:8px;top:8px;z-index:9;font:12px/1.3 "JetBrains Mono",monospace;color:#7CFFB2;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:4px;white-space:pre';
+    stageEl.appendChild(meter);
+  }
   const t0 = performance.now();
+  let last = t0, avg = budget, since = t0, tuned = t0;
   const loop = (now) => {
+    const dt = Math.max(0, now - last); last = now;
+    avg += (Math.min(dt, 100) - avg) * 0.1;
+    // ajusta a escala a cada 0,5 s, com folga para não ficar oscilando
+    if (now - tuned > 500 && params.get('adaptive') !== '0') {
+      tuned = now;
+      const prev = resScale;
+      if (avg > budget * 1.08) resScale = Math.max(0.45, resScale * 0.9);
+      else if (avg < budget * 0.8) resScale = Math.min(1, resScale * 1.05);
+      if (resScale !== prev) resize();
+    }
     window.CZ.renderAtTime(((now - t0) / 1000) % window.CZ.duration);
+    if (meter && now - since > 500) {
+      meter.textContent = `${(1000 / avg).toFixed(0)} fps  ${avg.toFixed(1)} ms\nescala ${(resScale * 100).toFixed(0)}%  alvo ${target}`;
+      since = now;
+    }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);

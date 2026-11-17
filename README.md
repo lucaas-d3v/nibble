@@ -42,6 +42,30 @@ Ajustes por linha de comando: `--samples`, `--aperture`, `--fps`, `--scale`, `--
 node pipeline/render.mjs ep00_nibble --stills --scene 8 --at 2.2 --scale 1 --samples 16 --clean
 ```
 
+## Fluidez (30 e 60 fps)
+
+Tudo no motor é função contínua do tempo, então o mesmo episódio sai a 30 ou 60 fps sem mudar nada:
+
+```bash
+make render   EP=ep01_tecla      # 30 fps
+make render60 EP=ep01_tecla      # 60 fps, o dobro de quadros e de tempo de render
+make smooth   EP=ep01_tecla      # verificador: procura trancos quadro a quadro
+```
+
+- **Verificador** (`pipeline/smoothness.mjs`): percorre o episódio sem renderizar, mede a aceleração
+  de câmera, cabeça, mãos, pés, objetos e partículas, e aponta picos isolados fora dos cortes de cena.
+  Rode depois de mexer em animação.
+- **Motion blur real**: obturador de 180° (metade do intervalo do quadro) com 16 sub-amostras.
+- **Partículas** são simuladas a 120 Hz e interpoladas no resto do passo, então as sub-amostras do
+  motion blur formam rastro contínuo, e não cópias.
+- **Pulos** agacham antes e comprimem ao pousar, com velocidade e aceleração contínuas.
+- **Prévia ao vivo**: `make dev` e abra `/?ep=ep01_tecla&fps=1`. O tempo segue o relógio (quadro
+  atrasado não desacelera a animação) e a resolução interna se ajusta para segurar `&target=60`.
+  `&fast=1` desliga a oclusão de ambiente. O JavaScript gasta menos de 0,3 ms por quadro; o resto é GPU.
+
+30 fps com motion blur lê como cinema e é o padrão. 60 fps vale para cenas com câmera rápida,
+partículas e pulsos de dados, a um custo de render dobrado.
+
 ## Cenários
 
 `engine/src/stage/environments.js`. Regras: o centro alto do quadro (onde flutua o objeto) fica calmo,

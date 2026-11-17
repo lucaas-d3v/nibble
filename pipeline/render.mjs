@@ -37,9 +37,11 @@ const codec = args.codec ?? 'x264';
 const { timeline } = timelineFor(dir, episode, fps);
 let from = Number(args.from ?? 0), to = Number(args.to ?? timeline.total_duration);
 if (args.scene) {
+  // com --scene, --from/--to contam a partir do início da cena
   const s = timeline.scenes[Number(args.scene) - 1];
   if (!s) throw new Error(`cena ${args.scene} não existe (1..${timeline.scenes.length})`);
-  from = s.start; to = s.end;
+  from = s.start + Number(args.from ?? 0);
+  to = Math.min(s.end, s.start + Number(args.to ?? s.end - s.start));
 }
 
 const outDir = join(dir, 'output');

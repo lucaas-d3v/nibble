@@ -61,7 +61,17 @@ const TALK_POOL = ['open', 'offer', 'beat', 'count', 'both', 'offer', 'beat', 's
 const HAPPY_POOL = ['open', 'both', 'open', 'offer', 'both'];
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
-const hop = (t, t0, d, h) => (t > t0 && t < t0 + d ? h * 4 * ((t - t0) / d) * (1 - (t - t0) / d) : 0);
+// Pulo com velocidade contínua: agacha antes, arco no ar, comprime ao pousar.
+// Todas as junções têm derivada zero, então não há tranco nem a 60 fps.
+// (Parábola crua sai do chão já em velocidade: a 60 fps isso vira um quadro de salto.)
+// sin^4 nas dobras: aceleração também começa e termina em zero (sem tranco nem no 1º quadro).
+const HOP_PRE = 0.15, HOP_POST = 0.18;
+const hop = (t, t0, d, h) => {
+  if (t <= t0 - HOP_PRE || t >= t0 + d + HOP_POST) return 0;
+  if (t < t0) return -0.2 * h * Math.sin(Math.PI * (t - (t0 - HOP_PRE)) / HOP_PRE) ** 4;
+  if (t <= t0 + d) return h * Math.sin(Math.PI * (t - t0) / d) ** 2;
+  return -0.25 * h * Math.sin(Math.PI * (t - t0 - d) / HOP_POST) ** 4;
+};
 const step = (t, t0) => (t >= t0 ? 1 : 0);
 
 function setArm(T, side, g, k = 1) {
@@ -263,7 +273,7 @@ export class MotionTrack {
       }
 
       case 'shock': {
-        Q.jump = t < 0.07 ? -0.03 * smooth(t / 0.07) : hop(t, 0.07, 0.36, 0.17);
+        Q.jump = hop(t, 0.16, 0.38, 0.17);
         if (t >= 0.06 && t < 1.4) {
           setArm(T, 'L', [0.95, 0.4, 0.35, 1.3, 1.25]);
           setArm(T, 'R', [0.95, 0.4, 0.35, 1.3, 1.25]);
@@ -282,7 +292,7 @@ export class MotionTrack {
       }
 
       case 'celebrate': {
-        Q.jump = hop(t, 0.15, 0.36, 0.13) + hop(t, 0.6, 0.36, 0.13) + hop(t, 1.05, 0.38, 0.15);
+        Q.jump = hop(t, 0.22, 0.34, 0.13) + hop(t, 0.78, 0.34, 0.13) + hop(t, 1.34, 0.38, 0.15);
         if (t < 1.6) {
           const w = Math.sin(t * 15);
           setArm(T, 'L', [0.55, 0.95, 0.15, 0.4, 0.45 + 0.3 * w]);
@@ -310,7 +320,7 @@ export class MotionTrack {
         Q.x = this.px - 2.4 * (1 - easeOutCubic(u));
         Q.curl = t < 0.8 ? 1 : 1 - smooth((t - 0.8) / 0.32);
         Q.spin = -(Q.x - this.px) / RIG.ballR;
-        Q.jump = hop(t, 0.8, 0.4, 0.15);
+        Q.jump = hop(t, 0.86, 0.4, 0.15);
         if (t >= 1.0 && t < 1.9) {
           setArm(T, 'L', [0.75, 0.45, 0.45, 0.8, 0.5]);
           setArm(T, 'R', [0.75, 0.45, 0.45, 0.8, 0.5]);
@@ -339,6 +349,9 @@ export class MotionTrack {
     T.headYaw += clamp(0.5 * Q.lookYaw, -0.7, 0.7);
     T.headPitch += -0.8 * Q.lookElev;
 
+    // achata agachado/ao pousar, estica no ar (puro, sem impulso)
+    T.squash += Q.jump < 0 ? Q.jump * 1.6 : Q.jump * 0.35;
+
     // Enrolar: corpo se curva e cabeça entra antes de virar bola
     if (Q.curl > 0) {
       T.pelvisPitch += Q.curl * 1.1;
@@ -361,10 +374,9 @@ export class MotionTrack {
       v[CI.earL] += -3.2 * dJumpV - 1.1 * (hpV - this.prev.hpV);
       v[CI.earR] += -3.2 * dJumpV - 1.1 * (hpV - this.prev.hpV);
       v[CI.tail] += -1.6 * (prV - this.prev.prV) - 1.0 * (pyV - this.prev.pyV) + 1.2 * dJumpV;
-      if (this.prev.jumpV < -0.25 && Q.jump <= 1e-4) v[CI.squash] -= 1.25 * Math.abs(this.prev.jumpV);
-      T.squash += 0.07 * Math.min(1.5, Math.abs(jumpV));
-      const tw = this.twitches.find((e) => Math.abs(e.t - this.n * DT) < DT / 2);
-      if (tw) v[CI[tw.ear]] -= 4.5;
+      // contração de orelha: força espalhada em 80 ms (impulso instantâneo vira salto a 60 fps)
+      const now = this.n * DT;
+      for (const tw of this.twitches) if (now >= tw.t && now < tw.t + 0.08) v[CI[tw.ear]] -= 4.5 * DT / 0.08;
       this.prev = { jump: Q.jump, jumpV, hpV, prV, pyV };
 
       for (let i = 0; i < this.N; i++) {

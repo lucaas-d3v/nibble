@@ -296,7 +296,7 @@ export class Nibble {
       elbow.add(fore, hand);
       shoulder.add(upper, elbow);
       this.torso.add(shoulder);
-      return { shoulder, elbow, s };
+      return { shoulder, elbow, hand, s };
     });
   }
 
