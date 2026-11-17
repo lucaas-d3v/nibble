@@ -14,7 +14,8 @@ script.json ─► validador ─► nota de retenção ─► linha do tempo ─
 
 ## Rodar
 
-Precisa de Node 22+, ffmpeg 6 ou mais novo e Chrome (ou Chromium). Zig só se for mexer nos geradores.
+Precisa de Node 22+, ffmpeg 6 ou mais novo (de preferência com libx264) e Chrome (ou Chromium).
+Zig só se for mexer nos geradores.
 
 ```bash
 make install
@@ -24,10 +25,24 @@ make retention EP=ep01_tecla     # nota do roteiro e o que corrigir
 CZ_GPU=1 make render EP=ep01_tecla
 ```
 
-Sem `CZ_GPU=1` o Chrome renderiza por software. Funciona, mas o render final leva horas em vez de minutos.
-Com ele, o motor testa os caminhos até a GPU (Vulkan, EGL, GL) e usa o primeiro que funcionar; a linha
-`GPU: ...` no começo do render diz qual. Se cair no software, `make gpu-check` mostra o que travou cada um.
-Se o Chrome não estiver num caminho padrão, defina `CHROME_PATH`.
+**GPU.** Sem `CZ_GPU=1` o Chrome renderiza no SwiftShader (CPU). Funciona, mas o render final leva horas
+em vez de minutos. Com ele, o motor testa os caminhos até a GPU (Vulkan, EGL, GL) e usa o primeiro que
+funcionar; a linha `GPU: ...` no começo do render diz qual. Se o Chrome não tiver SwiftShader (o Chromium
+do Void não traz), o render sem `CZ_GPU` avisa e vai pra GPU do mesmo jeito. `make gpu-check` mostra o que
+travou cada caminho. Se o Chrome não estiver num caminho padrão, defina `CHROME_PATH`.
+
+**ffmpeg.** O render pergunta ao ffmpeg o que ele tem e usa o primeiro destes que funcionar de verdade:
+`libx264` (CRF 14, tune animation, BT.709: é a qualidade final), `libx265`, e por último `h264_vaapi` ou
+`hevc_vaapi` na GPU (`/dev/dri/renderD128`), que é só reserva. A linha `Encoder: ...` diz qual foi e, no
+VAAPI, qual modo de qualidade o driver aceitou (o radeonsi da AMD só tem CQP, CBR e VBR). `--codec
+x264|x265|h264_vaapi|hevc_vaapi|prores` força um; se o ffmpeg não tiver, o erro diz qual flag de
+compilação falta, e o `make video` faz o mesmo com os filtros de áudio. `FFMPEG=/caminho/do/ffmpeg` usa
+outro binário. Quem compila o ffmpeg à mão precisa de `--enable-gpl --enable-libx264` (e
+`--enable-libx265`), mais os pacotes `x264-devel` e `x265-devel`; confira com
+`ffmpeg -hide_banner -encoders | grep -E 'libx26|vaapi'`.
+
+**Regressão visual.** `node pipeline/golden.mjs` só compara no SwiftShader, onde as referências de
+`tests/golden` foram feitas. Num Chrome sem ele, pula e manda rodar no CI.
 
 ## Um episódio, do zero
 
