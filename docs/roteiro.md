@@ -93,6 +93,15 @@ Comuns a todos: `id`, `pos`, `rot`, `scale`, `float` (flutua e gira devagar), `a
 | `terminal` | `lines` (`$` verde, `!` vermelho), `type_at`, `char_time` |
 | `box`, `sphere`, `cylinder`, `arrow` | `color`, `metal`, `emissive`, `intensity` |
 
+### Ênfase e sobreposições
+
+- `*palavra*` na narração: a palavra fica destacada na legenda (os asteriscos não vão para a voz).
+- `overlays[]` na cena:
+  - `{ "type": "counter", "at": 6.2, "dur": 0.9, "from": 0, "to": 4, "format": "hex", "digits": 2, "label": "código da tecla A", "pos": [0.5, 0.27] }`
+    (`format`: `dec`, `hex`, `bin`; `pos` em fração da tela)
+  - `{ "type": "code", "at": 1.0, "text": "if (tecla) {\n  envia(0x04);\n}", "char_time": 0.035, "pos": [0.5, 0.3] }`
+  Não ponha sobreposição e etiqueta no mesmo lugar: a sobreposição substitui a etiqueta.
+
 ### Etiquetas (`labels[]`)
 
 `text`, `side` (`left`/`right`), `at` (segundos na cena), `lift` (altura relativa, padrão 0.07) e `anchor`:

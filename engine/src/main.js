@@ -145,6 +145,7 @@ function updateWorld(t) {
     const env = state.envs.get(sc.env);
     scene.background = new THREE.Color(env.background);
     scene.fog = new THREE.Fog(...env.fog);
+    pipeline.setGrade(env.grade);
     state.current = i;
   }
   state.envs.get(sc.env).update?.(t);

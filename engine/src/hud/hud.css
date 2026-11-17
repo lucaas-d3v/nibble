@@ -19,3 +19,12 @@
 .cz-progress { position: absolute; left: 0; bottom: 0; height: 0.45cqh; background: linear-gradient(90deg, #c0703a, #ffb020); }
 .cz-mark { position: absolute; left: 0; right: 0; bottom: 4.4cqh; text-align: center; font-family: "JetBrains Mono", monospace;
   font-size: 2.5cqw; letter-spacing: 0.3em; color: rgba(248, 250, 252, 0.5); }
+.cz-cap em { font-style: normal; color: #ffb020; text-shadow: 0 0 2.2cqw rgba(255, 176, 32, 0.55); }
+.cz-cap em.on { color: #fff3d6; }
+.cz-ov { position: absolute; pointer-events: none; transform-origin: center; }
+.cz-ov-counter { display: flex; flex-direction: column; align-items: center; gap: 0.4cqh; padding: 1.2cqh 4cqw;
+  border-radius: 2.4cqw; background: rgba(8, 12, 19, 0.82); border: 0.3cqw solid rgba(255, 176, 32, 0.7); }
+.cz-ov-counter small { font-family: "JetBrains Mono", monospace; font-size: 2.8cqw; letter-spacing: 0.2em; color: rgba(56, 214, 255, 0.95); text-transform: uppercase; }
+.cz-ov-counter span { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 9cqw; color: #ffb020; letter-spacing: 0.02em; }
+.cz-ov-code { white-space: pre; font-family: "JetBrains Mono", monospace; font-size: 3.3cqw; line-height: 1.45; color: #d8e1ec;
+  padding: 1.4cqh 3.6cqw; border-radius: 2cqw; background: rgba(5, 8, 12, 0.86); border: 0.25cqw solid rgba(56, 214, 255, 0.6); min-width: 50cqw; }

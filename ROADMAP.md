@@ -21,8 +21,8 @@ Ordem por impacto no vídeo final. ✅ feito · 🔶 parcial · ⬜ a fazer · �
 | 8 | Campo `mood` no roteiro | ✅ |
 | 9 | `vazio` fraco; cenários por camada (kernel, RAM, rede, disco) | ⬜ |
 | 10 | Neblina volumétrica e feixes de luz | ⬜ pesa sem GPU |
-| 11 | HUD: setas, contadores, hexadecimal, código digitando, `*ênfase*` | ⬜ |
-| 12 | Gradação de cor por cenário | ⬜ |
+| 11 | HUD: contadores (dec/hex/bin), código digitando, `*ênfase*` | ✅ (setas: as etiquetas já fazem esse papel) |
+| 12 | Gradação de cor por cenário | ✅ |
 
 ## Câmera
 | | Item | Estado |

@@ -59,8 +59,8 @@ const cacheFile = join(audioDir, '.cache.json');
 const cache = existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, 'utf8')) : {};
 
 // "||" do roteiro vira pausa real na fala
-const toSpeech = (s) => s.split(BEAT).map((p) => p.trim()).filter(Boolean).join(` <break time="${BEAT_PAUSE + 0.15}s" /> `);
-const plain = (s) => s.replaceAll(BEAT, ' ').replace(/\s+/g, ' ').trim();
+const toSpeech = (s) => s.replace(/\*/g, '').split(BEAT).map((p) => p.trim()).filter(Boolean).join(` <break time="${BEAT_PAUSE + 0.15}s" /> `);
+const plain = (s) => s.replace(/\*/g, '').replaceAll(BEAT, ' ').replace(/\s+/g, ' ').trim();
 
 const only = args.scene ? [episode.scenes[Number(args.scene) - 1]] : episode.scenes;
 let spent = 0;

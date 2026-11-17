@@ -289,7 +289,8 @@ function bancada(q) {
   const d = dust([0.95, 0.2, -1.0], { count: 110, height: 1.8, width: 1.5, intensity: 1.4 });
   g.add(d.root); updaters.push(d);
 
-  return { group: g, background: 0x0a0d13, fog: [0x0a0d13, 8, 22], update: (t) => updaters.forEach((u) => u.update(t)) };
+  return { group: g, background: 0x0a0d13, fog: [0x0a0d13, 8, 22],
+    grade: { lift: [0.012, 0.006, 0.0], gamma: [1.0, 1.0, 0.97], gain: [1.05, 1.0, 0.92], sat: 1.06 }, update: (t) => updaters.forEach((u) => u.update(t)) };
 }
 
 // ---------------------------------------------------------------------------
@@ -403,7 +404,8 @@ function chip(q) {
   const e = buildObject({ id: 'el', type: 'particles', kind: 'flow', pos: [-5, 0.6, -2.5], count: 160, length: 10, spread: 3.2, speed: 0.6, size: 0.007, color: PALETTE.cyan, intensity: 4, seed: 5 });
   g.add(e.root); updaters.push(e);
 
-  return { group: g, background: 0x04070d, fog: [0x050912, 5, 20], update: (t) => updaters.forEach((u) => u.update(t)) };
+  return { group: g, background: 0x04070d, fog: [0x050912, 5, 20],
+    grade: { lift: [0.0, 0.006, 0.016], gamma: [0.98, 1.0, 1.02], gain: [0.95, 1.0, 1.07], sat: 1.12 }, update: (t) => updaters.forEach((u) => u.update(t)) };
 }
 
 // ---------------------------------------------------------------------------
@@ -431,7 +433,8 @@ function vazio(q) {
   }
   const d = dust([0, 0.1, -0.5], { count: 180, height: 3, width: 4, color: 0xcfe3ff, intensity: 1.6 });
   g.add(d.root); updaters.push(d);
-  return { group: g, background: 0x070a10, fog: [0x070a10, 7, 18], update: (t) => updaters.forEach((u) => u.update(t)) };
+  return { group: g, background: 0x070a10, fog: [0x070a10, 7, 18],
+    grade: { lift: [0.004, 0.004, 0.01], gamma: [1, 1, 1], gain: [1.0, 1.0, 1.02], sat: 1.04 }, update: (t) => updaters.forEach((u) => u.update(t)) };
 }
 
 const ENVS = { bancada, chip, vazio };

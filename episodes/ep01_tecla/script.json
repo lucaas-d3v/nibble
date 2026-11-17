@@ -194,7 +194,7 @@
       "tone": "explain",
       "environment": "chip",
       "layer": "camada 2 · o cabo",
-      "narration": "Aí o teclado espera. || É o computador que pergunta, até mil vezes por segundo: tem novidade? || E a resposta desce pelo cabo como um número.",
+      "narration": "Aí o teclado espera. || É o computador que pergunta, até *mil* vezes por segundo: tem novidade? || E a resposta desce pelo cabo como um *número*.",
       "hud_text": "O PC pergunta primeiro",
       "camera": "hero",
       "nibble": {
@@ -206,22 +206,6 @@
         "rotY": 0.35,
         "anim": "talk"
       },
-      "labels": [
-        {
-          "text": "CÓDIGO 0x04 = A",
-          "anchor": {
-            "obj": "bits",
-            "local": [
-              0.16,
-              0.1,
-              0.1
-            ]
-          },
-          "side": "left",
-          "at": 5.6,
-          "lift": 0.08
-        }
-      ],
       "objects": [
         {
           "id": "cabo",
@@ -265,6 +249,22 @@
           "pattern": "00000100",
           "start_at": 5.0,
           "appear_at": 4.6
+        }
+      ],
+      "overlays": [
+        {
+          "type": "counter",
+          "at": 6.2,
+          "dur": 0.9,
+          "from": 0,
+          "to": 4,
+          "format": "hex",
+          "digits": 2,
+          "label": "código da tecla A",
+          "pos": [
+            0.5,
+            0.27
+          ]
         }
       ]
     },
@@ -344,7 +344,7 @@
       "tone": "payoff",
       "environment": "bancada",
       "layer": "camada 5 · de volta",
-      "narration": "Só então o programa recebe a letra e desenha ela na tela. || Tudo isso em poucos milissegundos. || Toda vez que você digita.",
+      "narration": "Só então o programa recebe a letra e desenha ela na tela. || Tudo isso em *poucos milissegundos*. || Toda vez que você digita.",
       "hud_text": "E a letra aparece",
       "camera": "hero",
       "focus": [

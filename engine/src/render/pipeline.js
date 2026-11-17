@@ -78,10 +78,11 @@ export class RenderPipeline {
     });
 
     this.outMat = new THREE.ShaderMaterial({
-      uniforms: { tMap: { value: null }, uSeed: { value: 0 }, uAspect: { value: 9 / 16 } },
+      uniforms: { tMap: { value: null }, uSeed: { value: 0 }, uAspect: { value: 9 / 16 },
+        uLift: { value: new THREE.Vector3(0, 0, 0) }, uGamma: { value: new THREE.Vector3(1, 1, 1) }, uGain: { value: new THREE.Vector3(1, 1, 1) }, uSat: { value: 1 } },
       vertexShader: FULLSCREEN_VS,
       fragmentShader: /* glsl */ `
-        uniform sampler2D tMap; uniform float uSeed; uniform float uAspect; varying vec2 vUv;
+        uniform sampler2D tMap; uniform float uSeed; uniform float uAspect; uniform vec3 uLift, uGamma, uGain; uniform float uSat; varying vec2 vUv;
         float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
         void main() {
           vec2 c = vUv - 0.5;
@@ -96,6 +97,12 @@ export class RenderPipeline {
           col *= mix(1.0, 0.62, smoothstep(0.25, 1.05, dot(v, v) * 2.2));
           gl_FragColor = vec4(col, 1.0);
           #include <tonemapping_fragment>
+          // gradação: saturação, depois lift/gamma/gain (estilo colorista), em linear
+          vec3 gc = gl_FragColor.rgb;
+          float luma = dot(gc, vec3(0.2126, 0.7152, 0.0722));
+          gc = max(mix(vec3(luma), gc, uSat), 0.0);
+          gc = pow(max(gc * uGain + uLift * (1.0 - gc), 0.0), 1.0 / uGamma);
+          gl_FragColor.rgb = gc;
           #include <colorspace_fragment>
           // grão de filme (depois do tone mapping, quebra o banding do gradiente)
           float g = hash(gl_FragCoord.xy + uSeed) - 0.5;
@@ -104,6 +111,15 @@ export class RenderPipeline {
       `,
       depthTest: false, depthWrite: false, toneMapped: true,
     });
+  }
+
+  /** Gradação do cenário atual: { lift: [r,g,b], gamma: [r,g,b], gain: [r,g,b], sat }. */
+  setGrade(g = {}) {
+    const u = this.outMat.uniforms;
+    u.uLift.value.set(...(g.lift ?? [0, 0, 0]));
+    u.uGamma.value.set(...(g.gamma ?? [1, 1, 1]));
+    u.uGain.value.set(...(g.gain ?? [1, 1, 1]));
+    u.uSat.value = g.sat ?? 1;
   }
 
   setSize(w, h) {

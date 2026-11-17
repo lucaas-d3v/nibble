@@ -80,6 +80,8 @@ export function buildTimeline(episode, audioDurations = {}, fps = 30, alignments
     let visemes = null;
     if (alignments[scene.id]) {
       const { words, vowels } = wordsFromAlignment(alignments[scene.id]);
+      const marked = scene.narration.replaceAll(BEAT, ' ').trim().split(/\s+/);
+      if (marked.length === words.length) words.forEach((w, k) => { if (marked[k].includes('*')) w.text = marked[k]; });
       const at = (x) => cursor + VOICE_OFFSET + x;
       captions.length = 0;
       let cur = [];

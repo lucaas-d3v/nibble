@@ -37,13 +37,20 @@ export class Hud {
     if (cap) {
       const words = cap.text.split(' ');
       const k = Math.min(words.length - 1, Math.floor(((t - cap.start) / (cap.end - cap.start)) * words.length));
-      this.cap.innerHTML = words.map((w, i) => (i === k ? `<b>${esc(w)}</b>` : esc(w))).join(' ');
+      // *palavra* no roteiro = ênfase permanente na legenda
+      this.cap.innerHTML = words.map((w, i) => {
+        const em = /^\*.+\*[.,!?…;:]*$/.test(w) || /^\*[^*]+\*$/.test(w.replace(/[.,!?…;:]+$/, ''));
+        const txt = esc(w.replace(/\*/g, ''));
+        return em ? `<em class="${i === k ? 'on' : ''}">${txt}</em>` : i === k ? `<b>${txt}</b>` : txt;
+      }).join(' ');
       const pop = clamp01((t - cap.start) / 0.09);
       this.cap.style.transform = `scale(${0.92 + 0.08 * easeOutBack(pop)})`;
       this.cap.style.opacity = 1;
     } else this.cap.style.opacity = 0;
 
     this.progress.style.width = `${(t / total) * 100}%`;
+
+    this._overlays(scene, lt);
 
     const labels = scene.labels ?? [];
     while (this.labelEls.length < labels.length) {
@@ -69,5 +76,43 @@ export class Hud {
     });
     this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     this.svg.innerHTML = lines;
+  }
+
+  /**
+   * Sobreposições do roteiro (scene.overlays):
+   *  { type: 'counter', at, dur, from, to, format: 'dec'|'hex'|'bin', digits, label, pos: [x, y] }
+   *  { type: 'code', at, text (linhas com \n), char_time, pos: [x, y] }
+   */
+  _overlays(scene, lt) {
+    const list = scene.overlays ?? [];
+    if (this._ovScene !== scene) {
+      (this._ovEls ?? []).forEach((e) => e.remove());
+      this._ovEls = list.map((o) => {
+        const d = document.createElement('div');
+        d.className = `cz-ov cz-ov-${o.type}`;
+        d.style.left = `${(o.pos?.[0] ?? 0.5) * 100}%`;
+        d.style.top = `${(o.pos?.[1] ?? 0.3) * 100}%`;
+        this.el.appendChild(d);
+        return d;
+      });
+      this._ovScene = scene;
+    }
+    list.forEach((o, i) => {
+      const d = this._ovEls[i], k = clamp01((lt - (o.at ?? 0.5)) / 0.25);
+      d.style.opacity = k;
+      d.style.transform = `translate(-50%, -50%) scale(${0.85 + 0.15 * easeOutBack(k)})`;
+      if (k <= 0) return;
+      if (o.type === 'counter') {
+        const u = clamp01((lt - (o.at ?? 0.5)) / (o.dur ?? 1.2)), e = u * u * u * (u * (u * 6 - 15) + 10);
+        const v = Math.round((o.from ?? 0) + ((o.to ?? 0) - (o.from ?? 0)) * e);
+        const fmt = o.format ?? 'dec';
+        const txt = fmt === 'hex' ? `0x${v.toString(16).toUpperCase().padStart(o.digits ?? 2, '0')}`
+          : fmt === 'bin' ? v.toString(2).padStart(o.digits ?? 8, '0') : v.toLocaleString('pt-BR');
+        d.innerHTML = `${o.label ? `<small>${esc(o.label)}</small>` : ''}<span>${txt}</span>`;
+      } else if (o.type === 'code') {
+        const n = Math.max(0, Math.floor((lt - (o.at ?? 0.5)) / (o.char_time ?? 0.035)));
+        d.textContent = (o.text ?? '').slice(0, n);
+      }
+    });
   }
 }
