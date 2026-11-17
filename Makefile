@@ -1,12 +1,13 @@
 EP ?= ep01_tecla
 ZIG ?= zig
 
-.PHONY: help install dev new schema thumb retention validate stills preview render render60 smooth master voice voices video wasm
+.PHONY: help install dev gpu-check new schema thumb retention validate stills preview render render60 smooth master voice voices video wasm
 
 help:
 	@echo "make install             instala dependências"
 	@echo "make dev                 prévia no navegador: http://127.0.0.1:5173/?ep=$(EP)&fps=1"
 	@echo "make new EP=ep02_x TITLE=\"...\"  cria um episódio válido para começar"
+	@echo "make gpu-check           testa os caminhos até a GPU (CZ_GPU=1)"
 	@echo "make retention EP=...    nota de retenção do roteiro e o que corrigir"
 	@echo "make validate EP=...     confere o roteiro"
 	@echo "make thumb EP=... [SCENE=n AT=s]  thumbnail com o título (PNG 1080x1920)"
@@ -28,6 +29,9 @@ install:
 
 dev:
 	npx vite
+
+gpu-check:
+	node pipeline/browser.mjs
 
 new:
 	node pipeline/new.mjs $(EP) $(if $(TITLE),--title "$(TITLE)",)

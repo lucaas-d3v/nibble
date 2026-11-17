@@ -14,7 +14,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createServer } from 'vite';
-import { chromium } from 'playwright-core';
+import { launchBrowser } from './browser.mjs';
 import { ROOT, resolveEpisode, loadEpisode, timelineFor, parseArgs } from './common.mjs';
 import { validate } from './validate.mjs';
 
@@ -53,23 +53,11 @@ const outDir = join(dir, 'output');
 mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, 'timeline.json'), JSON.stringify(timeline, null, 2));
 
-function chromePath() {
-  const candidates = [process.env.CHROME_PATH, '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'];
-  const hit = candidates.find((p) => p && existsSync(p));
-  if (!hit) throw new Error('Chrome/Chromium não encontrado; defina CHROME_PATH');
-  return hit;
-}
-
 const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: Number(args.port ?? 5173) } });
 await server.listen();
 const url = server.resolvedUrls.local[0];
 
-// CZ_GPU=1 usa a GPU de verdade (Vulkan via ANGLE); sem isso cai no SwiftShader (CPU), bem mais lento.
-const gpuFlags = process.env.CZ_GPU
-  ? ['--enable-gpu', '--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist']
-  : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--hide-scrollbars', '--force-color-profile=srgb', '--disable-lcd-text', ...gpuFlags] });
+const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
 page.on('pageerror', (e) => console.error('[página]', e.message));
 page.on('console', (m) => { if (m.type() === 'error') console.error('[console]', m.text()); });

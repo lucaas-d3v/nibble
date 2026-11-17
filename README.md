@@ -25,6 +25,8 @@ CZ_GPU=1 make render EP=ep01_tecla
 ```
 
 Sem `CZ_GPU=1` o Chrome renderiza por software. Funciona, mas o render final leva horas em vez de minutos.
+Com ele, o motor testa os caminhos até a GPU (Vulkan, EGL, GL) e usa o primeiro que funcionar; a linha
+`GPU: ...` no começo do render diz qual. Se cair no software, `make gpu-check` mostra o que travou cada um.
 Se o Chrome não estiver num caminho padrão, defina `CHROME_PATH`.
 
 ## Um episódio, do zero
