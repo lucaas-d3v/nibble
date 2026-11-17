@@ -1,0 +1,303 @@
+{
+  "episode_id": "ep90_catalogo",
+  "title": "Catálogo de objetos",
+  "outfit": "none",
+  "scenes": [
+    {
+      "id": "01_cpu",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto processador, pronto para os episódios.",
+      "hud_text": "cpu",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "cpu",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.55,
+            -0.5,
+            0
+          ],
+          "scale": 0.9,
+          "float": true,
+          "float_swing": 0.12,
+          "cutaway": true,
+          "open_at": 0.4
+        }
+      ]
+    },
+    {
+      "id": "02_ssd",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto SSD, pronto para os episódios.",
+      "hud_text": "ssd",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "ssd",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.9,
+            -0.4,
+            0
+          ],
+          "scale": 0.8,
+          "float": true,
+          "float_swing": 0.12,
+          "active": true
+        }
+      ]
+    },
+    {
+      "id": "03_fan",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto cooler, pronto para os episódios.",
+      "hud_text": "fan",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "fan",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            1.1,
+            -0.2,
+            0
+          ],
+          "scale": 1.0,
+          "float": true,
+          "float_swing": 0.12,
+          "rpm": 600
+        }
+      ]
+    },
+    {
+      "id": "04_gpu",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto placa de vídeo, pronto para os episódios.",
+      "hud_text": "gpu",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "gpu",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.7,
+            -0.45,
+            0
+          ],
+          "scale": 0.7,
+          "float": true,
+          "float_swing": 0.12,
+          "rpm": 900
+        }
+      ]
+    },
+    {
+      "id": "05_hdd",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto HD, pronto para os episódios.",
+      "hud_text": "hdd",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "hdd",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.9,
+            -0.5,
+            0
+          ],
+          "scale": 0.75,
+          "float": true,
+          "float_swing": 0.12,
+          "seek_at": 0.6
+        }
+      ]
+    },
+    {
+      "id": "06_gate",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto porta lógica XOR, pronto para os episódios.",
+      "hud_text": "gate",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "gate",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.9,
+            -0.3,
+            0
+          ],
+          "scale": 1.1,
+          "float": true,
+          "float_swing": 0.12,
+          "gate": "xor",
+          "step": 0.8
+        }
+      ]
+    },
+    {
+      "id": "07_mem_cells",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto memória DRAM, pronto para os episódios.",
+      "hud_text": "mem_cells",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "mem_cells",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.9,
+            -0.3,
+            0
+          ],
+          "scale": 1.0,
+          "float": true,
+          "float_swing": 0.12,
+          "leak": true,
+          "write_at": 0.3
+        }
+      ]
+    },
+    {
+      "id": "08_packet",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto pacote, pronto para os episódios.",
+      "hud_text": "packet",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "packet",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.3,
+            -0.6,
+            0
+          ],
+          "scale": 1.1,
+          "float": true,
+          "float_swing": 0.12,
+          "label": "TCP"
+        }
+      ]
+    },
+    {
+      "id": "09_terminal",
+      "tone": "explain",
+      "environment": "vazio",
+      "narration": "Este é o objeto terminal, pronto para os episódios.",
+      "hud_text": "terminal",
+      "camera": "prop",
+      "camera_move": "orbit",
+      "nibble": {
+        "visible": false
+      },
+      "objects": [
+        {
+          "id": "o",
+          "type": "terminal",
+          "pos": [
+            0.15,
+            1.35,
+            0
+          ],
+          "rot": [
+            0.1,
+            -0.35,
+            0
+          ],
+          "scale": 0.85,
+          "float": true,
+          "float_swing": 0.12,
+          "lines": [
+            "$ make render EP=ep01",
+            "quadro 1653/1653",
+            "ok  ep01_final.mp4"
+          ],
+          "type_at": 0.3
+        }
+      ]
+    }
+  ]
+}

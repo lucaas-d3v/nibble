@@ -11,6 +11,7 @@ export const TONES = ['hook', 'curious', 'explain', 'payoff', 'outro'];
 export const PREFABS = [
   'cpu', 'ram', 'chip', 'key', 'key_matrix', 'cable', 'bit_grid', 'transistor', 'screen',
   'particles', 'box', 'sphere', 'cylinder', 'arrow',
+  'ssd', 'fan', 'gpu', 'hdd', 'gate', 'mem_cells', 'packet', 'terminal',
 ];
 export const PARTICLE_KINDS = ['sparks', 'flow', 'dust'];
 

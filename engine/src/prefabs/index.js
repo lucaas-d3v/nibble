@@ -24,15 +24,9 @@ function cpu(o) {
   for (let i = 0; i < 24; i++) for (let j = 0; j < 24; j++) m4.setPosition(-0.46 + i * 0.04, -0.035, -0.46 + j * 0.04), pads.setMatrixAt(n++, m4);
   root.add(pads);
   // die: o silício de verdade
-  const dieTex = canvasTexture(512, (c, s) => {
-    c.fillStyle = '#000'; c.fillRect(0, 0, s, s);
-    for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) {
-      const v = hash(i * 16 + j);
-      c.fillStyle = v > 0.8 ? '#ffb020' : v > 0.55 ? '#38d6ff' : v > 0.3 ? '#12324a' : '#0a1422';
-      c.fillRect(i * 32 + 3, j * 32 + 3, 26, 26);
-    }
-  });
-  const dieMat = new THREE.MeshStandardMaterial({ color: PALETTE.silicon, emissiveMap: dieTex, emissive: 0xffffff, emissiveIntensity: 0, roughness: 0.2, metalness: 0.7 });
+  // silício: planta gerada no Zig (blocos de memória, barramentos roteados, trilhas acesas)
+  const dieMat = boardMaterial({ size: 1024, grid: 48, seed: o.seed ?? 11, style: 1, components: 7, nets: 90 }, { emissive: 1, normalScale: 0.8 });
+  dieMat.emissiveIntensity = 0;
   root.add(mesh(new THREE.BoxGeometry(0.4, 0.03, 0.4), dieMat, { pos: [0, 0.04, 0] }));
   // tampa metálica (IHS) com gravação
   const lid = new THREE.Group();
@@ -47,7 +41,7 @@ function cpu(o) {
       const open = o.cutaway ? easeOutBack(ramp(lt, o.open_at ?? 0.5, 0.8)) : 0;
       lid.position.set(0, 0.075 + open * 0.34, -open * 0.4);
       lid.rotation.x = -open * 0.3;
-      dieMat.emissiveIntensity = (o.cutaway ? open : 0) * (2.2 + Math.sin(lt * 7) * 0.6) + (o.active ? 0.8 : 0);
+      dieMat.emissiveIntensity = (o.cutaway ? open : 0) * (2.6 + Math.sin(lt * 7) * 0.6) + (o.active ? 0.8 : 0);
     },
   };
 }
@@ -297,8 +291,185 @@ function arrow(o) {
   return { root, update(lt) { root.position.y = (o.pos?.[1] ?? 0) + Math.sin(lt * 4) * 0.03; root.scale.setScalar(easeOutBack(ramp(lt, o.at ?? 0, 0.35)) * (o.scale?.[0] ?? 1) || 0.0001); } };
 }
 
+
+// ---------------------------------------------------------------- objetos novos
+const nandLabel = (txt) => labelTexture(txt, { fg: '#9aa6b8', bg: '#121821', font: 54 });
+
+function ssd(o) {
+  const root = new THREE.Group();
+  root.add(mesh(new THREE.BoxGeometry(1.6, 0.03, 0.42), pcb(14, { repeat: [1, 0.26] })));
+  const chips = [-0.42, 0.12].map((x, i) => {
+    const m = new THREE.MeshStandardMaterial({ color: 0x0f1218, emissive: PALETTE.amber, emissiveIntensity: 0, roughness: 0.4 });
+    root.add(mesh(new THREE.BoxGeometry(0.42, 0.05, 0.3), m, { pos: [x, 0.04, 0] }));
+    root.add(mesh(new THREE.PlaneGeometry(0.3, 0.16), mat(0xffffff, { map: nandLabel(i ? 'NAND\n1TB' : 'NAND\n1TB'), roughness: 0.6 }), { pos: [x, 0.0651, 0], rot: [-Math.PI / 2, 0, 0], shadow: false }));
+    return m;
+  });
+  root.add(mesh(new THREE.BoxGeometry(0.22, 0.045, 0.22), mat(0x1a1f27, { roughness: 0.35 }), { pos: [0.52, 0.037, 0] }));
+  for (let i = 0; i < 18; i++) if (i !== 4) root.add(mesh(new THREE.BoxGeometry(0.02, 0.031, 0.1), metal(PALETTE.gold), { pos: [-0.79, 0, -0.17 + i * 0.02], shadow: false }));
+  root.add(mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.032, 20, 1, false, Math.PI / 2, Math.PI), metal(PALETTE.gold), { pos: [0.8, 0, 0], rot: [0, 0, 0] }));
+  return { root, update(lt) { chips.forEach((m, i) => { m.emissiveIntensity = o.active ? Math.max(0, Math.sin(lt * 9 + i * 2)) ** 6 * 3 : 0; }); } };
+}
+
+function fanBlades(radius, n, color) {
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.CylinderGeometry(radius * 0.32, radius * 0.32, 0.08, 32), mat(0x1a1d22, { roughness: 0.4 })));
+  g.add(mesh(new THREE.CircleGeometry(radius * 0.2, 24), mat(0xc9d1dc, { roughness: 0.5 }), { pos: [0, 0.041, 0], rot: [-Math.PI / 2, 0, 0], shadow: false }));
+  for (let i = 0; i < n; i++) {
+    const b = mesh(new THREE.BoxGeometry(radius * 0.62, 0.012, radius * 0.3), mat(color, { roughness: 0.45, transparent: true, opacity: 0.95 }));
+    b.position.set(Math.cos((i / n) * Math.PI * 2) * radius * 0.6, 0, Math.sin((i / n) * Math.PI * 2) * radius * 0.6);
+    b.rotation.set(0.35, -(i / n) * Math.PI * 2, 0);
+    g.add(b);
+  }
+  return g;
+}
+
+function fan(o) {
+  const root = new THREE.Group();
+  const frame = mat(0x14171c, { roughness: 0.5 });
+  root.add(mesh(new THREE.TorusGeometry(0.47, 0.03, 10, 48), frame, { rot: [Math.PI / 2, 0, 0] }));
+  for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) root.add(mesh(new THREE.BoxGeometry(0.16, 0.1, 0.16), frame, { pos: [x * 0.44, 0, z * 0.44] }));
+  for (let i = 0; i < 4; i++) root.add(mesh(new THREE.BoxGeometry(0.42, 0.02, 0.03), frame, { pos: [Math.cos(i * Math.PI / 2 + 0.785) * 0.25, -0.04, Math.sin(i * Math.PI / 2 + 0.785) * 0.25], rot: [0, -(i * Math.PI / 2 + 0.785), 0] }));
+  const rotor = fanBlades(0.45, o.blades ?? 7, o.color ?? 0x2a2f38);
+  root.add(rotor);
+  const ring = mesh(new THREE.TorusGeometry(0.45, 0.012, 8, 64), glow(o.glow ?? PALETTE.cyan, o.glow === 0 ? 0 : 2.5), { rot: [Math.PI / 2, 0, 0], pos: [0, 0.05, 0], shadow: false });
+  root.add(ring);
+  const rps = (o.rpm ?? 900) / 60, spin = o.spin_at ?? 0;
+  // gira com aceleração suave a partir de spin_at (ângulo = integral da velocidade)
+  return { root, update(lt) { const u = Math.max(0, lt - spin), ramp = 0.6; const ang = u < ramp ? 0.5 * u * u / ramp : u - ramp / 2; rotor.rotation.y = -ang * rps * Math.PI * 2; } };
+}
+
+function gpu(o) {
+  const root = new THREE.Group();
+  root.add(mesh(new THREE.BoxGeometry(2.0, 0.05, 0.9), pcb(21, { repeat: [1, 0.45] })));
+  root.add(mesh(new THREE.BoxGeometry(1.95, 0.22, 0.86), mat(0x1b1f26, { roughness: 0.4, metalness: 0.5 }), { pos: [0, 0.14, 0] }));
+  root.add(mesh(new THREE.BoxGeometry(1.95, 0.012, 0.06), glow(o.glow ?? PALETTE.amber, 2.6), { pos: [0, 0.25, 0.4], shadow: false }));
+  const fans = [-0.48, 0.48].map((x) => { const f = fan({ rpm: o.rpm ?? 1400, glow: 0, spin_at: o.spin_at }); f.root.scale.setScalar(0.82); f.root.position.set(x, 0.27, 0); root.add(f.root); return f; });
+  for (let i = 0; i < 16; i++) if (Math.abs(i - 6) > 0.5) root.add(mesh(new THREE.BoxGeometry(0.05, 0.051, 0.06), metal(PALETTE.gold), { pos: [-0.8 + i * 0.07, 0, -0.47], shadow: false }));
+  return { root, update(lt) { fans.forEach((f) => f.update(lt)); } };
+}
+
+function hdd(o) {
+  const root = new THREE.Group();
+  root.add(mesh(new THREE.BoxGeometry(1.2, 0.12, 1.6), metal(0x9aa4b0, { roughness: 0.45 }), { pos: [0, 0, 0] }));
+  const platter = new THREE.Group();
+  platter.add(mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.02, 96), new THREE.MeshPhysicalMaterial({ color: 0xd8dde4, metalness: 1, roughness: 0.08, clearcoat: 1 })));
+  // trilhas concêntricas (ajudam a ver o giro e a busca)
+  for (let r = 0.18; r < 0.5; r += 0.045) platter.add(mesh(new THREE.TorusGeometry(r, 0.0015, 4, 96), mat(0x8a95a3, { metalness: 0.8, roughness: 0.3 }), { rot: [Math.PI / 2, 0, 0], pos: [0, 0.011, 0], shadow: false }));
+  platter.add(mesh(new THREE.BoxGeometry(0.08, 0.003, 0.02), glow(PALETTE.amber, 2), { pos: [0.38, 0.012, 0], shadow: false }));
+  platter.position.set(0, 0.075, -0.2);
+  root.add(platter);
+  root.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 32), metal(0xc9d1dc), { pos: [0, 0.1, -0.2] }));
+  const arm = new THREE.Group();
+  arm.add(mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.08, 24), metal(0x5f6874), { pos: [0, 0.03, 0] }));
+  arm.add(mesh(new THREE.BoxGeometry(0.06, 0.015, 0.78), metal(0xb8c2ce, { roughness: 0.3 }), { pos: [0, 0.09, -0.4] }));
+  const head = glow(PALETTE.cyan, 0);
+  arm.add(mesh(new THREE.BoxGeometry(0.05, 0.02, 0.05), head, { pos: [0, 0.088, -0.78], shadow: false }));
+  arm.position.set(0.42, 0.04, 0.55);
+  root.add(arm);
+  const rps = (o.rpm ?? 120) / 60;
+  return {
+    root,
+    update(lt) {
+      platter.rotation.y = -lt * rps * Math.PI * 2;
+      // busca: o braço varre entre trilhas em saltos suaves
+      const seek = o.seek_at ?? 1, k = Math.max(0, lt - seek), step = Math.floor(k / 0.9);
+      const a0 = hash(step + 3) * 0.5 - 0.1, a1 = hash(step + 4) * 0.5 - 0.1, f = smooth(((k % 0.9) - 0.1) / 0.25);
+      arm.rotation.y = lt < seek ? 0.15 : lerp(a0, a1, f) + 0.15;
+      head.emissiveIntensity = lt >= seek && f > 0.95 ? 3 : 0.4;
+    },
+  };
+}
+
+// porta lógica: entradas mudam ao longo do tempo, a saída é calculada e acende
+const GATES = { and: [(a, b) => a & b, '&'], or: [(a, b) => a | b, '≥1'], xor: [(a, b) => a ^ b, '=1'], nand: [(a, b) => 1 - (a & b), '&'], nor: [(a, b) => 1 - (a | b), '≥1'], not: [(a) => 1 - a, '1'] };
+function gate(o) {
+  const kind = o.gate ?? 'and', [fn, sym] = GATES[kind] ?? GATES.and, one = kind === 'not';
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  body.add(mesh(new THREE.BoxGeometry(0.62, 0.16, 0.7), mat(0x1c2433, { roughness: 0.4, metalness: 0.3 })));
+  body.add(mesh(new THREE.PlaneGeometry(0.5, 0.5), mat(0xffffff, { map: labelTexture(sym, { fg: '#e8edf5', bg: '#1c2433', font: 120 }), roughness: 0.5 }), { pos: [0, 0.081, 0], rot: [-Math.PI / 2, 0, 0], shadow: false }));
+  if (kind.startsWith('n')) body.add(mesh(new THREE.TorusGeometry(0.05, 0.018, 8, 20), mat(0xe8edf5), { pos: [0.37, 0, 0], rot: [0, Math.PI / 2, 0] }));
+  root.add(body);
+  const wire = (x0, x1, z) => { const m = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, emissive: PALETTE.amber, emissiveIntensity: 0, roughness: 0.4 }); root.add(mesh(new THREE.CylinderGeometry(0.025, 0.025, Math.abs(x1 - x0), 12), m, { pos: [(x0 + x1) / 2, 0, z], rot: [0, 0, Math.PI / 2], shadow: false })); return m; };
+  const ins = one ? [wire(-0.85, -0.31, 0)] : [wire(-0.85, -0.31, -0.18), wire(-0.85, -0.31, 0.18)];
+  const out = wire(kind.startsWith('n') ? 0.43 : 0.31, 0.95, 0);
+  const seq = (o.inputs ?? (one ? ['0', '1'] : ['00', '01', '10', '11'])).map((s) => [...s].map(Number));
+  const step = o.step ?? 1.2;
+  return {
+    root,
+    update(lt) {
+      const v = seq[Math.floor(Math.max(0, lt - (o.start_at ?? 0.5)) / step) % seq.length];
+      ins.forEach((m, i) => { m.emissiveIntensity = v[i] ? 4 : 0.05; });
+      out.emissiveIntensity = fn(v[0], v[1]) ? 5 : 0.05;
+    },
+  };
+}
+
+// células de memória (DRAM): bits gravados linha a linha; com leak, a carga vaza e volta no refresh
+function mem_cells(o) {
+  const rows = o.rows ?? 4, cols = o.cols ?? 8, pitch = 0.16;
+  const bits = (o.pattern ?? '01001101 10110010 01110001 11001010').replace(/[^01]/g, '');
+  const root = new THREE.Group();
+  root.add(mesh(new THREE.BoxGeometry(cols * pitch + 0.1, 0.04, rows * pitch + 0.1), mat(0x141b27, { roughness: 0.5, metalness: 0.4 }), { pos: [0, -0.04, 0] }));
+  const cells = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const m = new THREE.MeshStandardMaterial({ color: 0x1e2635, emissive: PALETTE.cyan, emissiveIntensity: 0, roughness: 0.3, metalness: 0.5 });
+    root.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 20), m, { pos: [(c - (cols - 1) / 2) * pitch, 0.02, (r - (rows - 1) / 2) * pitch] }));
+    cells.push({ m, r, on: bits[(r * cols + c) % bits.length] === '1' });
+  }
+  const wAt = o.write_at ?? 0.5, rowT = o.row_time ?? 0.25, period = o.refresh ?? 2.2;
+  return {
+    root,
+    update(lt) {
+      for (const c of cells) {
+        const w = smooth((lt - wAt - c.r * rowT) / 0.12);
+        let q = c.on ? w : 0;
+        if (o.leak && q > 0) { const since = (lt - wAt - c.r * rowT) % period; q *= 1 - 0.75 * clamp01(since / period); }
+        c.m.emissiveIntensity = q * 4;
+      }
+    },
+  };
+}
+
+function packet(o) {
+  const root = new THREE.Group();
+  root.add(mesh(new THREE.BoxGeometry(0.62, 0.3, 0.3), mat(0x1d2738, { roughness: 0.35, metalness: 0.4 })));
+  root.add(mesh(new THREE.BoxGeometry(0.16, 0.31, 0.31), glow(o.color ?? PALETTE.amber, 2.8), { pos: [-0.24, 0, 0], shadow: false }));
+  root.add(mesh(new THREE.PlaneGeometry(0.4, 0.2), mat(0xffffff, { map: labelTexture(o.label ?? 'TCP', { fg: '#e8edf5', bg: '#1d2738', font: 90 }), roughness: 0.5 }), { pos: [0.07, 0, 0.151], shadow: false }));
+  return { root, update() {} };
+}
+
+function terminal(o) {
+  const root = new THREE.Group();
+  root.add(mesh(new THREE.BoxGeometry(1.6, 1.0, 0.05), mat(0x0c0f14, { roughness: 0.35 })));
+  const cv = document.createElement('canvas'); cv.width = 800; cv.height = 500;
+  const ctx = cv.getContext('2d');
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  root.add(mesh(new THREE.PlaneGeometry(1.52, 0.95), new THREE.MeshStandardMaterial({ color: 0x000000, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 1.4, roughness: 0.2 }), { pos: [0, 0, 0.026], shadow: false }));
+  const lines = o.lines ?? ['$ make render', 'ok'], ct = o.char_time ?? 0.05, at = o.type_at ?? 0.8;
+  let last = '';
+  return {
+    root,
+    update(lt) {
+      let n = Math.max(0, Math.floor((lt - at) / ct));
+      const shown = lines.map((l) => { const k = Math.min(l.length, n); n -= l.length + 4; return n + l.length + 4 >= 0 ? l.slice(0, k) : null; }).filter((l) => l !== null);
+      const cursor = Math.floor(lt * 2.5) % 2 === 0;
+      const key = shown.join('|') + cursor;
+      if (key === last) return; last = key;
+      ctx.fillStyle = '#05080c'; ctx.fillRect(0, 0, 800, 500);
+      ctx.fillStyle = '#111a24'; ctx.fillRect(0, 0, 800, 40);
+      ['#ff5f57', '#febc2e', '#28c840'].forEach((c, i) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(26 + i * 28, 20, 8, 0, 7); ctx.fill(); });
+      ctx.font = '500 34px "JetBrains Mono", monospace'; ctx.textBaseline = 'top';
+      shown.forEach((l, i) => { ctx.fillStyle = l.startsWith('$') ? '#7CFFB2' : l.startsWith('!') ? '#ff8a80' : '#d8e1ec'; ctx.fillText(l, 24, 64 + i * 46); });
+      if (cursor) { const l = shown[shown.length - 1] ?? ''; ctx.fillStyle = '#38d6ff'; ctx.fillRect(24 + ctx.measureText(l).width + 4, 64 + Math.max(0, shown.length - 1) * 46, 18, 36); }
+      tex.needsUpdate = true;
+    },
+  };
+}
+
 const REGISTRY = {
   cpu, ram, chip, key, key_matrix, cable, bit_grid, transistor, screen, particles, arrow,
+  ssd, fan, gpu, hdd, gate, mem_cells, packet, terminal,
   box: simple(() => new THREE.BoxGeometry(1, 1, 1)),
   sphere: simple(() => new THREE.SphereGeometry(0.5, 40, 28)),
   cylinder: simple(() => new THREE.CylinderGeometry(0.5, 0.5, 1, 40)),

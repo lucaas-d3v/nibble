@@ -76,13 +76,21 @@ Comuns a todos: `id`, `pos`, `rot`, `scale`, `float` (flutua e gira devagar), `a
 | `key` | `label`, `press_at`, `hold`, `cutaway` (carcaça transparente, mostra os contatos) |
 | `key_matrix` | `rows`, `cols`, `hit: [linha, coluna]`, `hit_at`, `scan_period` |
 | `chip` | `label`, `on_at`, `color` |
-| `cpu` | `label`, `cutaway` (a tampa abre e mostra o silício), `open_at`, `active` |
+| `cpu` | `label`, `cutaway` (a tampa abre e mostra o silício, planta gerada no Zig), `open_at`, `active`, `seed` |
 | `ram` | `active` |
 | `cable` | `from`, `to` (locais), `sag`, `pulses`, `speed`, `start_at`, `pulse_color`, `loop` |
 | `bit_grid` | `pattern` ("01000001"), `cols`, `start_at`, `stagger` |
 | `transistor` | `on_at`, `period` (liga e desliga) |
 | `screen` | `text`, `type_at`, `char_time` |
 | `particles` | `kind`: `sparks`, `flow`, `dust`; `count`, `speed`, `spread`, `length`, `floor`, `size`, `color`, `start_at` |
+| `ssd` | `active` (chips piscam) |
+| `fan` | `rpm`, `spin_at`, `blades`, `glow` (cor do anel; 0 desliga) |
+| `gpu` | `rpm`, `spin_at`, `glow` |
+| `hdd` | `rpm`, `seek_at` (o braço passa a buscar trilhas) |
+| `gate` | `gate`: `and`, `or`, `xor`, `nand`, `nor`, `not`; `inputs` (ex.: `["00","01","10","11"]`), `step`, `start_at` |
+| `mem_cells` | `rows`, `cols`, `pattern`, `write_at`, `row_time`, `leak` (carga vaza; DRAM), `refresh` |
+| `packet` | `label`, `color` (use `keys` para mover) |
+| `terminal` | `lines` (`$` verde, `!` vermelho), `type_at`, `char_time` |
 | `box`, `sphere`, `cylinder`, `arrow` | `color`, `metal`, `emissive`, `intensity` |
 
 ### Etiquetas (`labels[]`)

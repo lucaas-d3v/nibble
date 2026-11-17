@@ -11,7 +11,7 @@ Ordem por impacto no vídeo final. ✅ feito · 🔶 parcial · ⬜ a fazer · �
 | 2b | Captura de quadro ~23x mais rápida (CDP, PNG sem perdas) | ✅ |
 | 3 | Coreografia no roteiro: quadros-chave em objetos, vários planos por cena, humor do Nibble | ✅ |
 | 4 | Nibble interage com objetos (apertar, tocar) com cinemática inversa | ✅ |
-| 5 | Catálogo: SSD, cooler, HD, porta lógica, célula de memória, pacote, terminal, GPU; planta do chip gerada no Zig | ⬜ |
+| 5 | Catálogo: SSD, cooler, HD, porta lógica, célula de memória, pacote, terminal, GPU; planta do chip gerada no Zig | ✅ (`ep90_catalogo`) |
 
 ## Visual
 | | Item | Estado |
