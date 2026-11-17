@@ -148,9 +148,11 @@ export function cameraShot(preset, lt, dur, n, f, shot = {}) {
       exposure *= 1 + 2.2 * u ** 2;
     } else if (kind === 'rise') {
       // subir de camada: o inverso, sobe e recua; a próxima cena chega subindo de baixo
-      if (!entering) { pos[1] += 1.6 * u; pos[0] -= fwd.x * 1.6 * u; pos[2] -= fwd.z * 1.6 * u; pitch += 0.4 * u; fov += 8 * u; }
-      else { pos[1] -= 1.4 * u; pitch += 0.45 * u; fov += 8 * u; }
-      exposure *= 1 + 1.6 * u ** 2;
+      // sobe de grua rápido, inclinando para cima até estourar no clarão;
+      // a próxima cena surge de baixo, com a câmera ainda inclinada, e assenta
+      if (!entering) { pos[1] += 2.4 * u; pos[0] -= fwd.x * 1.2 * u; pos[2] -= fwd.z * 1.2 * u; pitch += 0.7 * u; roll += 0.08 * u * dir; fov += 12 * u; }
+      else { pos[1] -= 1.1 * u; pos[0] -= fwd.x * 0.8 * u; pos[2] -= fwd.z * 0.8 * u; pitch += 0.6 * u; roll -= 0.06 * u * dir; fov += 10 * u; }
+      exposure *= 1 + 2.4 * u ** 2;
     }
   };
   if (shot.trIn && shot.trIn !== 'cut' && lt < IN) apply(shot.trIn, 1 - easeOut3(lt / IN), true);
@@ -167,9 +169,12 @@ export function cameraShot(preset, lt, dur, n, f, shot = {}) {
 }
 
 const _t = new THREE.Vector3(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _q = new THREE.Quaternion();
+// no 16:9 o quadro é baixo: sobe um pouco o enquadramento para os objetos do alto não cortarem
+let wideLift = 0;
+export function setWide(wide) { wideLift = wide ? 0.24 : 0; }
 export function applyShot(camera, shot) {
-  camera.position.set(...shot.pos);
-  _t.set(...shot.target);
+  camera.position.set(shot.pos[0], shot.pos[1] + wideLift, shot.pos[2]);
+  _t.set(shot.target[0], shot.target[1] + wideLift, shot.target[2]);
   camera.lookAt(_t);
   _e.set(shot.pitch, shot.yaw, shot.roll);
   camera.quaternion.multiply(_q.setFromEuler(_e));

@@ -6,7 +6,7 @@ import '@fontsource/jetbrains-mono/600.css';
 import { RenderPipeline } from './render/pipeline.js';
 import { Nibble } from './character/nibble.js';
 import { buildEnvironment } from './stage/environments.js';
-import { applyShot, cameraShot, cameraPose, resolveTransitions } from './stage/camera.js';
+import { applyShot, cameraShot, cameraPose, resolveTransitions, setWide } from './stage/camera.js';
 import { buildObject } from './prefabs/index.js';
 import { Hud } from './hud/hud.js';
 import { loadSim } from './sim/sim.js';
@@ -220,8 +220,11 @@ async function boot() {
     time: 0,
     load,
     renderAtTime(t) { this.time = t; renderAtTime(t); },
-    configure({ samples, shutter, aperture, fps, hud }) {
-      if (hud !== undefined) document.getElementById('hud').style.display = hud ? '' : 'none';
+    configure({ samples, shutter, aperture, fps, hud: showHud, aspect }) {
+      // formato: 9/16 (Shorts, padrão) ou 16/9 (vídeo longo). O enquadramento vertical é o mesmo;
+      // no 16:9 aparece mais cenário dos lados.
+      if (aspect) { stageEl.style.setProperty('--ar', String(aspect)); setWide(aspect > 1); hud.wide = aspect > 1; resize(); }
+      if (showHud !== undefined) document.getElementById('hud').style.display = showHud ? '' : 'none';
       if (samples) pipeline.samples = samples;
       if (shutter !== undefined) pipeline.shutter = shutter;
       if (aperture !== undefined) pipeline.aperture = aperture;
@@ -233,7 +236,10 @@ async function boot() {
       const { i } = updateWorld(t);
       scene.updateMatrixWorld(true);
       const w = (o) => o.getWorldPosition(new THREE.Vector3()).toArray();
-      const out = { scene: i, cam: camera.position.toArray(), target: camera.userData.target.toArray() };
+      // rotação da câmera entra como dois pontos presos a ela (2 m à frente, 1 m acima)
+      const fwdPt = new THREE.Vector3(0, 0, -2).applyQuaternion(camera.quaternion).add(camera.position);
+      const upPt = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).add(camera.position);
+      const out = { scene: i, cam: camera.position.toArray(), camAim: fwdPt.toArray(), camUp: upPt.toArray(), target: camera.userData.target.toArray() };
       if (nibble.root.visible) {
         out.root = w(nibble.root);
         out.head = w(nibble.head);
@@ -263,7 +269,7 @@ async function boot() {
   const ep = params.get('ep');
   if (!ep) return;
   const episode = await (await fetch(`/episodes/${ep}/script.json`)).json();
-  window.CZ.configure({ samples: Number(params.get('samples') ?? 1), aperture: Number(params.get('aperture') ?? 0) });
+  window.CZ.configure({ samples: Number(params.get('samples') ?? 1), aperture: Number(params.get('aperture') ?? 0), aspect: params.get('wide') === '1' ? 16 / 9 : undefined });
   load(episode);
   if (params.has('t')) { window.CZ.renderAtTime(Number(params.get('t'))); return; }
   // Prévia em tempo real. O tempo vem do relógio, não da contagem de quadros: se um quadro

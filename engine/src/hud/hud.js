@@ -91,7 +91,7 @@ export class Hud {
         const d = document.createElement('div');
         d.className = `cz-ov cz-ov-${o.type}`;
         d.style.left = `${(o.pos?.[0] ?? 0.5) * 100}%`;
-        d.style.top = `${(o.pos?.[1] ?? 0.3) * 100}%`;
+        d.style.top = `${(this.wide ? Math.max(0.42, o.pos?.[1] ?? 0.3) : o.pos?.[1] ?? 0.3) * 100}%`;
         this.el.appendChild(d);
         return d;
       });

@@ -53,7 +53,8 @@
             "enum": [
               "bancada",
               "chip",
-              "vazio"
+              "vazio",
+              "memoria"
             ]
           },
           "layer": {

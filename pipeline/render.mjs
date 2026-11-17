@@ -9,7 +9,7 @@
 //   node pipeline/render.mjs ep01_tecla --codec prores  # master ProRes 4444 para editar depois
 //
 // Opções: --samples N  --fps N  --scale 0.5  --from s  --to s  --aperture 0.02  --crf 14
-//         --clean (sem HUD: para thumbnail e foto de perfil)
+//         --clean (sem HUD: para thumbnail e foto de perfil)  --aspect 16:9 (vídeo longo)
 import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -31,7 +31,9 @@ if (thumb) { args.stills = true; args.clean = true; args.scale ??= 1; args.sampl
 const preview = !!args.preview, stills = !!args.stills;
 const fps = Number(args.fps ?? (preview ? 15 : 30));
 const scale = Number(args.scale ?? (preview || stills ? 0.5 : 1));
-const width = Math.round(1080 * scale / 2) * 2, height = Math.round(1920 * scale / 2) * 2;
+// --aspect 16:9 para vídeo longo (1920x1080); padrão 9:16 (1080x1920)
+const wide = args.aspect === '16:9';
+const width = Math.round((wide ? 1920 : 1080) * scale / 2) * 2, height = Math.round((wide ? 1080 : 1920) * scale / 2) * 2;
 const samples = Number(args.samples ?? (preview ? 1 : stills ? 8 : 16));
 const aperture = Number(args.aperture ?? (preview ? 0 : 0.012));
 const codec = args.codec ?? 'x264';
@@ -75,7 +77,7 @@ let ffmpeg = null;
 try {
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction(() => window.CZ?.ready, null, { timeout: 60_000 });
-  await page.evaluate(([ep, tl, cfg]) => { window.CZ.configure(cfg); window.CZ.load(ep, tl); }, [episode, timeline, { samples, aperture, fps, hud: !args.clean }]);
+  await page.evaluate(([ep, tl, cfg]) => { window.CZ.configure(cfg); window.CZ.load(ep, tl); }, [episode, timeline, { samples, aperture, fps, hud: !args.clean, aspect: wide ? 16 / 9 : undefined }]);
 
   // Captura direto pelo protocolo do Chrome em modo rápido: PNG sem perdas, idêntico pixel a pixel
   // ao print do Playwright, mas ~20x mais rápido (0,14 s contra 3,4 s em 1080x1920).
@@ -105,13 +107,13 @@ try {
       }, args.title ?? episode.thumb_title ?? episode.title);
     }
     for (const { s, t } of times) {
-      const f = thumb ? join(outDir, `${episode.episode_id}_thumb.png`) : join(sdir, `${s.id}_${t.toFixed(2)}s.png`);
+      const f = thumb ? join(outDir, `${episode.episode_id}_thumb.png`) : join(sdir, `${s.id}_${t.toFixed(2)}s${wide ? "_16x9" : ""}.png`);
       writeFileSync(f, await shot(t));
       console.log(f);
     }
   } else {
     const total = Math.ceil((to - from) * fps);
-    const suffix = (preview ? '_preview' : '') + (args.scene ? `_cena${String(args.scene).padStart(2, '0')}` : '');
+    const suffix = (preview ? '_preview' : '') + (wide ? '_16x9' : '') + (args.scene ? `_cena${String(args.scene).padStart(2, '0')}` : '');
     const out = join(outDir, `video${suffix}.${codec === 'prores' ? 'mov' : 'mp4'}`);
     const enc = {
       // CRF baixo + tune animation: gradientes limpos, sem blocagem nas áreas escuras

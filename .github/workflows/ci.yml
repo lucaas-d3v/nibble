@@ -40,6 +40,12 @@ jobs:
       - name: Verificador de fluidez (30 fps)
         run: node pipeline/smoothness.mjs ep00_nibble --fps 30 --ratio 6 || echo "::warning::trancos encontrados (veja o log)"
 
+      - name: Regressão visual (referências em tests/golden)
+        continue-on-error: true
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node pipeline/golden.mjs
+
       - name: Quadros de conferência
         env:
           CHROME_PATH: /usr/bin/google-chrome

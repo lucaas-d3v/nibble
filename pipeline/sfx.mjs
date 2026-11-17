@@ -32,6 +32,7 @@ const SOUNDS = {
   // fundos (em loop por baixo de cada cena)
   amb_bancada: { src: 'anoisesrc=d=8:c=pink:a=0.25:seed=9', af: 'lowpass=f=700,highpass=f=60,volume=0.5' },
   amb_chip: { src: "aevalsrc='0.06*sin(2*PI*60*t)+0.035*sin(2*PI*120*t)+0.02*sin(2*PI*180.5*t)':d=8", af: 'volume=1.0' },
+  amb_memoria: { src: "aevalsrc='0.045*sin(2*PI*50*t)+0.02*sin(2*PI*100*t)+0.012*sin(2*PI*1800*t)*gt(sin(2*PI*7*t),0.97)':d=8", af: 'volume=1.0' },
   amb_vazio: { src: "aevalsrc='0.05*sin(2*PI*55*t)*(0.8+0.2*sin(2*PI*0.2*t))+0.03*sin(2*PI*82.5*t)':d=8", af: 'volume=1.0' },
 };
 

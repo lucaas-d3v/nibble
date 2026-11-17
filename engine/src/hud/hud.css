@@ -1,30 +1,30 @@
 #hud { position: absolute; inset: 0; pointer-events: none; font-family: "Space Grotesk", system-ui, sans-serif; color: #f8fafc; container-type: size; }
 #hud * { box-sizing: border-box; }
 .cz-top { position: absolute; top: 6.2cqh; left: 0; right: 0; display: flex; justify-content: center; }
-.cz-pill { display: flex; align-items: center; gap: 2cqw; padding: 1.25cqh 4cqw; border-radius: 99cqw;
-  background: rgba(8, 12, 19, 0.72); border: 0.28cqw solid rgba(255, 176, 32, 0.55);
-  font-weight: 700; font-size: 4.3cqw; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+.cz-pill { display: flex; align-items: center; gap: 2cqmin; padding: 1.25cqh 4cqmin; border-radius: 99cqmin;
+  background: rgba(8, 12, 19, 0.72); border: 0.28cqmin solid rgba(255, 176, 32, 0.55);
+  font-weight: 700; font-size: 4.3cqmin; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
   transform-origin: center; }
-.cz-dot { width: 2cqw; height: 2cqw; border-radius: 50%; background: #ffb020; box-shadow: 0 0 2.4cqw #ffb020; }
+.cz-dot { width: 2cqmin; height: 2cqmin; border-radius: 50%; background: #ffb020; box-shadow: 0 0 2.4cqmin #ffb020; }
 .cz-layer { position: absolute; top: 12.4cqh; left: 0; right: 0; text-align: center;
-  font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 2.7cqw; letter-spacing: 0.22em; color: rgba(56, 214, 255, 0.9); text-transform: uppercase; }
-.cz-cap { position: absolute; left: 6cqw; right: 6cqw; bottom: 11.5cqh; text-align: center;
-  font-weight: 700; font-size: 8.6cqw; line-height: 1.05; letter-spacing: -0.01em;
-  -webkit-text-stroke: 1.3cqw #05070b; paint-order: stroke fill; text-shadow: 0 0.6cqw 2.4cqw rgba(0,0,0,0.65); }
+  font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 2.7cqmin; letter-spacing: 0.22em; color: rgba(56, 214, 255, 0.9); text-transform: uppercase; }
+.cz-cap { position: absolute; left: 6cqmin; right: 6cqmin; bottom: 11.5cqh; text-align: center;
+  font-weight: 700; font-size: 8.6cqmin; line-height: 1.05; letter-spacing: -0.01em;
+  -webkit-text-stroke: 1.3cqmin #05070b; paint-order: stroke fill; text-shadow: 0 0.6cqmin 2.4cqmin rgba(0,0,0,0.65); }
 .cz-cap b { color: #ffb020; font-weight: 700; }
 .cz-labels { position: absolute; inset: 0; width: 100%; height: 100%; }
-.cz-label { position: absolute; padding: 0.7cqh 2.4cqw; border-radius: 1.4cqw; background: rgba(8, 12, 19, 0.82);
-  border: 0.25cqw solid rgba(56, 214, 255, 0.75); font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 3.1cqw;
+.cz-label { position: absolute; padding: 0.7cqh 2.4cqmin; border-radius: 1.4cqmin; background: rgba(8, 12, 19, 0.82);
+  border: 0.25cqmin solid rgba(56, 214, 255, 0.75); font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 3.1cqmin;
   letter-spacing: 0.04em; white-space: nowrap; transform-origin: left center; }
 .cz-progress { position: absolute; left: 0; bottom: 0; height: 0.45cqh; background: linear-gradient(90deg, #c0703a, #ffb020); }
 .cz-mark { position: absolute; left: 0; right: 0; bottom: 4.4cqh; text-align: center; font-family: "JetBrains Mono", monospace;
-  font-size: 2.5cqw; letter-spacing: 0.3em; color: rgba(248, 250, 252, 0.5); }
-.cz-cap em { font-style: normal; color: #ffb020; text-shadow: 0 0 2.2cqw rgba(255, 176, 32, 0.55); }
+  font-size: 2.5cqmin; letter-spacing: 0.3em; color: rgba(248, 250, 252, 0.5); }
+.cz-cap em { font-style: normal; color: #ffb020; text-shadow: 0 0 2.2cqmin rgba(255, 176, 32, 0.55); }
 .cz-cap em.on { color: #fff3d6; }
 .cz-ov { position: absolute; pointer-events: none; transform-origin: center; }
-.cz-ov-counter { display: flex; flex-direction: column; align-items: center; gap: 0.4cqh; padding: 1.2cqh 4cqw;
-  border-radius: 2.4cqw; background: rgba(8, 12, 19, 0.82); border: 0.3cqw solid rgba(255, 176, 32, 0.7); }
-.cz-ov-counter small { font-family: "JetBrains Mono", monospace; font-size: 2.8cqw; letter-spacing: 0.2em; color: rgba(56, 214, 255, 0.95); text-transform: uppercase; }
-.cz-ov-counter span { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 9cqw; color: #ffb020; letter-spacing: 0.02em; }
-.cz-ov-code { white-space: pre; font-family: "JetBrains Mono", monospace; font-size: 3.3cqw; line-height: 1.45; color: #d8e1ec;
-  padding: 1.4cqh 3.6cqw; border-radius: 2cqw; background: rgba(5, 8, 12, 0.86); border: 0.25cqw solid rgba(56, 214, 255, 0.6); min-width: 50cqw; }
+.cz-ov-counter { display: flex; flex-direction: column; align-items: center; gap: 0.4cqh; padding: 1.2cqh 4cqmin;
+  border-radius: 2.4cqmin; background: rgba(8, 12, 19, 0.82); border: 0.3cqmin solid rgba(255, 176, 32, 0.7); }
+.cz-ov-counter small { font-family: "JetBrains Mono", monospace; font-size: 2.8cqmin; letter-spacing: 0.2em; color: rgba(56, 214, 255, 0.95); text-transform: uppercase; }
+.cz-ov-counter span { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 9cqmin; color: #ffb020; letter-spacing: 0.02em; }
+.cz-ov-code { white-space: pre; font-family: "JetBrains Mono", monospace; font-size: 3.3cqmin; line-height: 1.45; color: #d8e1ec;
+  padding: 1.4cqh 3.6cqmin; border-radius: 2cqmin; background: rgba(5, 8, 12, 0.86); border: 0.25cqmin solid rgba(56, 214, 255, 0.6); min-width: 50cqmin; }

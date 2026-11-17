@@ -177,6 +177,7 @@ export class Nibble {
     nose.position.set(0, tip[1] - 0.004, tz - 0.004);
     nose.rotation.x = 0.35;
     this.head.add(nose);
+    this.nose = nose; this.noseY = nose.position.y;
     for (const s of [-1, 1]) {
       const n = mesh(new THREE.SphereGeometry(0.0072, 12, 8), this.m.mouth, false);
       n.position.set(s * 0.016, tip[1] - 0.012, tz + 0.016);
@@ -185,13 +186,13 @@ export class Nibble {
     }
 
     // boca: um sorriso fechado que abre em oval quando fala
-    const mf = headFrame(HEAD_H1 - 0.05, Math.PI, 0.003);
+    const mf = headFrame(HEAD_H1 - 0.075, Math.PI, 0.004);
     this.mouth = new THREE.Group();
     this.mouth.position.copy(mf.pos);
-    const mz = mf.normal.clone().multiplyScalar(0.55).add(new THREE.Vector3(0, 0, 0.45)).normalize();
+    const mz = mf.normal.clone().multiplyScalar(0.35).add(new THREE.Vector3(0, 0, 0.65)).normalize();
     const mx = new THREE.Vector3(1, 0, 0), my = new THREE.Vector3().crossVectors(mz, mx).normalize();
     this.mouth.quaternion.copy(basis(mx, my, mz));
-    this.smile = mesh(new THREE.TorusGeometry(0.022, 0.0045, 8, 24, Math.PI * 0.75), this.m.liner, false);
+    this.smile = mesh(new THREE.TorusGeometry(0.032, 0.0055, 8, 28, Math.PI * 0.75), this.m.liner, false);
     this.smile.rotation.z = Math.PI + Math.PI * 0.125;
     this.smile.position.y = 0.012;
     this.mouthOpen = mesh(new THREE.SphereGeometry(1, 20, 14), this.m.mouth, false);
@@ -423,9 +424,11 @@ export class Nibble {
     this.root.rotation.y = Q.rotY;
     this.root.scale.setScalar(Q.S);
     this.roll.position.y = lerp(RIG.ride, RIG.ballR, curl) + Q.jump;
-    this.ball.visible = !standing;
+    // bola e corpo convivem por alguns quadros: a bola encolhe dentro do corpo curvado (sem corte seco)
+    this.ball.visible = curl > 0.5;
+    this.ball.scale.setScalar(0.8 + 0.2 * smooth((curl - 0.5) / 0.25));
     this.ball.rotation.z = Q.spin;
-    this.pelvis.visible = standing;
+    this.pelvis.visible = curl < 0.72;
 
     const sq = Math.max(0.7, S.squash);
     this.pelvis.rotation.set(S.pelvisPitch, S.pelvisYaw, S.pelvisRoll);
@@ -475,8 +478,11 @@ export class Nibble {
     this.tail.scale.setScalar(limbs);
 
     const jaw = THREE.MathUtils.clamp(S.jaw, 0, 1);
-    this.mouthOpen.scale.y = 0.001 + 0.02 * jaw;
-    this.mouthOpen.scale.x = 0.018 + 0.006 * jaw;
+    this.mouthOpen.scale.y = 0.001 + 0.026 * jaw;
+    this.mouthOpen.scale.x = 0.026 + 0.008 * jaw;
+    // narizinho mexe junto com a fala (lê como fala mesmo quando a boca está escondida)
+    this.nose.position.y = this.noseY - 0.006 * jaw;
+    this.nose.rotation.x = 0.35 + 0.12 * jaw;
     this.smile.visible = jaw < 0.25;
     this.m.seam.emissiveIntensity = 2.2 * Math.max(0.3, S.glow);
 
