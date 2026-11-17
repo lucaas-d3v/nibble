@@ -4,6 +4,8 @@ export const OUTFITS = ['none', 'esd', 'hoodie', 'goggles'];
 export const CAMERAS = ['hero', 'closeup', 'face', 'prop', 'macro', 'top', 'low'];
 export const ENVIRONMENTS = ['bancada', 'chip', 'vazio'];
 export const LOOKS = ['camera', 'focus'];
+export const MOVES = ['auto', 'static', 'push', 'pull', 'orbit', 'crane', 'drift'];
+export const TRANSITIONS = ['auto', 'cut', 'whip', 'dive', 'rise'];
 export const TONES = ['hook', 'curious', 'explain', 'payoff', 'outro'];
 export const PREFABS = [
   'cpu', 'ram', 'chip', 'key', 'key_matrix', 'cable', 'bit_grid', 'transistor', 'screen',

@@ -35,6 +35,8 @@ Regras editoriais:
 | `camera` | `hero` (plano geral, padrão), `closeup` (Nibble da cintura para cima), `face` (rosto; bom para reação e thumbnail), `prop` e `macro` (no objeto de `focus`), `top`, `low` |
 | `nibble.anim` | ver tabela abaixo |
 | `nibble.look` | opcional: `camera` ou `focus` fixa o olhar a cena toda |
+| `camera_move` | opcional: `push`, `pull`, `orbit`, `crane`, `drift`, `static` (padrão `auto`, escolhe pelo `tone`) |
+| `transition` | opcional, transição de entrada da cena: `whip`, `dive`, `rise`, `cut` (padrão `auto`: `whip` no mesmo cenário, `dive`/`rise` ao descer/subir de camada). Para `auto` funcionar, use `layer` como "camada N · nome". |
 
 ### Animações do Nibble
 

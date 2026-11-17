@@ -66,6 +66,25 @@ make smooth   EP=ep01_tecla      # verificador: procura trancos quadro a quadro
 30 fps com motion blur lê como cinema e é o padrão. 60 fps vale para cenas com câmera rápida,
 partículas e pulsos de dados, a um custo de render dobrado.
 
+## Câmera
+
+`engine/src/stage/camera.js`, tudo função pura do tempo, em camadas:
+
+1. **Enquadramento** (`camera`): `hero`, `closeup`, `face`, `prop`, `macro`, `top`, `low`.
+2. **Movimento da cena** (`camera_move`), com curva C2 (começa e termina parado): `push` (aproxima, tensão),
+   `pull` (afasta, revela), `orbit` (paralaxe com o fundo), `crane` (grua subindo), `drift` (quase parada),
+   `static`. Em `auto` sai do tom: gancho aproxima, explicação orbita, curiosidade deriva, fechamento afasta.
+3. **Reações**: soco de zoom e tremida curta no pulo de susto; no `roll_in` a câmera acompanha a bola.
+4. **Câmera na mão**: ruído suave de posição e rotação, mais forte em gancho e fechamento.
+5. **Transições** (`transition`, na cena que entra): `whip` (chicote de ~24° com motion blur), `dive`
+   (mergulha na mesa, clarão, chega caindo no cenário novo: descer de camada), `rise` (o inverso),
+   `cut`. Em `auto`: mesmo cenário vira `whip`; troca de cenário vira `dive` ou `rise` conforme o número
+   da camada desce ou sobe. A saída de uma cena e a entrada da próxima casam a velocidade no corte.
+
+**Foco**: a lente tem ponto de foco próprio (o recorte da imagem se desloca para manter o plano de foco,
+em vez de reapontar a câmera). Em `closeup` e `face` o foco fica no rosto do Nibble; no `point`, o foco
+passa para o objeto e volta. Ajuste a força com `--aperture` (padrão 0,012).
+
 ## Cenários
 
 `engine/src/stage/environments.js`. Regras: o centro alto do quadro (onde flutua o objeto) fica calmo,

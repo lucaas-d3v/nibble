@@ -41,6 +41,7 @@ export class RenderPipeline {
     r.shadowMap.type = THREE.PCFShadowMap;
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.92;
+    this.baseExposure = 0.92;
     r.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer = r;
 
@@ -118,7 +119,7 @@ export class RenderPipeline {
   /** `update(t)` deve posicionar o mundo e a câmera (com camera.userData.target) no tempo t. */
   render(t, update) {
     const { renderer: r, camera, samples: n } = this;
-    const right = new THREE.Vector3(), up = new THREE.Vector3();
+    const right = new THREE.Vector3(), up = new THREE.Vector3(), fwd = new THREE.Vector3(), tmp = new THREE.Vector3();
     const frame = Math.round(t * this.fps);
 
     r.setRenderTarget(this.accum);
@@ -130,16 +131,24 @@ export class RenderPipeline {
       update(Math.max(0, t + (u - 0.5) * this.shutter / this.fps));
 
       if (n > 1) {
-        const jx = halton(i + 1, 2) - 0.5, jy = halton(i + 1, 3) - 0.5;
-        camera.setViewOffset(this.w, this.h, jx, jy, this.w, this.h);
-        if (this.aperture > 0 && camera.userData.target) {
+        let jx = halton(i + 1, 2) - 0.5, jy = halton(i + 1, 3) - 0.5;
+        const focus = camera.userData.focus ?? camera.userData.target;
+        if (this.aperture > 0 && focus) {
+          // lente fina: a câmera anda no disco da lente sem girar, e o recorte da imagem se desloca
+          // para manter parado o plano que passa pelo ponto de foco (que pode não ser o alvo).
           const a = halton(i + 1, 5) * Math.PI * 2, rad = Math.sqrt(halton(i + 1, 7)) * this.aperture;
+          const ox = Math.cos(a) * rad, oy = Math.sin(a) * rad;
           camera.updateMatrixWorld();
           right.setFromMatrixColumn(camera.matrixWorld, 0);
           up.setFromMatrixColumn(camera.matrixWorld, 1);
-          camera.position.addScaledVector(right, Math.cos(a) * rad).addScaledVector(up, Math.sin(a) * rad);
-          camera.lookAt(camera.userData.target);
+          fwd.setFromMatrixColumn(camera.matrixWorld, 2).negate();
+          const F = Math.max(0.2, tmp.copy(focus).sub(camera.position).dot(fwd));
+          camera.position.addScaledVector(right, ox).addScaledVector(up, oy);
+          const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+          jx -= (ox / (F * tanH * camera.aspect)) * this.w / 2;
+          jy += (oy / (F * tanH)) * this.h / 2;
         }
+        camera.setViewOffset(this.w, this.h, jx, jy, this.w, this.h);
       }
 
       this.composer.render();

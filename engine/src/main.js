@@ -6,7 +6,7 @@ import '@fontsource/jetbrains-mono/600.css';
 import { RenderPipeline } from './render/pipeline.js';
 import { Nibble } from './character/nibble.js';
 import { buildEnvironment } from './stage/environments.js';
-import { applyCamera, cameraPose, FOV } from './stage/camera.js';
+import { applyShot, cameraShot, cameraPose, resolveTransitions } from './stage/camera.js';
 import { buildObject } from './prefabs/index.js';
 import { Hud } from './hud/hud.js';
 import { loadSim } from './sim/sim.js';
@@ -70,7 +70,8 @@ function load(episode, timeline) {
   nibble.resetMotion();
   state.loads++;
 
-  state.scenes = episode.scenes.map((cfg) => {
+  const transitions = resolveTransitions(episode.scenes);
+  state.scenes = episode.scenes.map((cfg, si) => {
     const envName = cfg.environment ?? 'bancada';
     if (!state.envs.has(envName)) {
       const env = buildEnvironment(envName, quality);
@@ -87,7 +88,7 @@ function load(episode, timeline) {
       group.add(built.root);
     }
     scene.add(group);
-    const built = { cfg, group, objects, env: envName };
+    const built = { cfg, group, objects, env: envName, trIn: transitions[si], trOut: transitions[si + 1] ?? 'cut' };
     built.focus = focusOf(cfg, built);
     built.hasFocus = !!(cfg.focus ?? cfg.objects?.length);
     return built;
@@ -117,18 +118,17 @@ function updateWorld(t) {
   }
   state.envs.get(sc.env).update?.(t);
   const cam = sc.cfg.camera ?? 'hero';
-  camera.fov = FOV[cam] ?? 30;
-  camera.updateProjectionMatrix();
   const ncfg = sc.cfg.nibble ?? {};
   const np = ncfg.pos ?? [-0.5, 0, 0.5];
   const nPos = { x: np[0], y: np[1], z: np[2] };
-  applyCamera(camera, cam, lt, dur, nPos, sc.focus);
+  const shotCfg = { move: sc.cfg.camera_move, tone: sc.cfg.tone, index: i, anim: ncfg.anim, trIn: sc.trIn, trOut: sc.trOut };
+  applyShot(camera, cameraShot(cam, lt, dur, nPos, sc.focus, shotCfg));
   nibble.root.visible = ncfg.visible !== false;
   if (!sc.speech) sc.speech = makeSpeech(entry);
   nibble.update(lt, dur, ncfg, {
     key: `${state.loads}:${i}`,
     seed: 1 + i * 3.17 + (state.episode.episode_id.length % 7),
-    camAt: (t) => cameraPose(cam, t, dur, nPos, sc.focus).pos,
+    camAt: (t) => cameraPose(cam, t, dur, nPos, sc.focus, shotCfg).pos,
     focus: sc.hasFocus ? sc.focus.toArray() : null,
     mouth: sc.speech.mouth,
     speaking: sc.speech.speaking,
@@ -154,6 +154,7 @@ function project(anchor, sc) {
 
 function renderAtTime(t) {
   const { entry, sc, lt } = updateWorld(t);
+  pipeline.renderer.toneMappingExposure = pipeline.baseExposure * (camera.userData.exposure ?? 1);
   hud.update({ t, lt, total: state.timeline.total_duration, scene: sc.cfg, entry, project: (a) => project(a, sc) });
   pipeline.render(t, updateWorld);
 }

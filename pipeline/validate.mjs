@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Valida um roteiro antes de gastar tempo de render.
-import { ANIMS, LOOKS, OUTFITS, CAMERAS, ENVIRONMENTS, TONES, PREFABS, PARTICLE_KINDS, LIMITS } from '../shared/catalog.js';
+import { ANIMS, LOOKS, MOVES, TRANSITIONS, OUTFITS, CAMERAS, ENVIRONMENTS, TONES, PREFABS, PARTICLE_KINDS, LIMITS } from '../shared/catalog.js';
 import { buildTimeline } from '../shared/timeline.js';
 import { resolveEpisode, loadEpisode, parseArgs } from './common.mjs';
 
@@ -24,6 +24,8 @@ export function validate(ep) {
     oneOf(w, 'camera', s.camera, CAMERAS);
     oneOf(w, 'nibble.anim', s.nibble?.anim, ANIMS);
     oneOf(w, 'nibble.look', s.nibble?.look, LOOKS);
+    oneOf(w, 'camera_move', s.camera_move, MOVES);
+    oneOf(w, 'transition', s.transition, TRANSITIONS);
     const words = (s.narration ?? '').replaceAll('||', ' ').trim().split(/\s+/).length;
     if (words > LIMITS.sceneWordsMax) warns.push(`${w}: ${words} palavras na cena (máx. recomendado ${LIMITS.sceneWordsMax})`);
     if (s.hud_text && (s.hud_text.split(/\s+/).length > LIMITS.hudWordsMax || s.hud_text.length > LIMITS.hudCharsMax)) warns.push(`${w}: hud_text longo demais (máx. ${LIMITS.hudWordsMax} palavras / ${LIMITS.hudCharsMax} caracteres)`);

@@ -61,6 +61,9 @@ const TALK_POOL = ['open', 'offer', 'beat', 'count', 'both', 'offer', 'beat', 's
 const HAPPY_POOL = ['open', 'both', 'open', 'offer', 'both'];
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+/** Deslocamento em x da bola na entrada rolando (0 quando chega). A câmera usa para acompanhar. */
+export const rollInX = (t) => -2.4 * (1 - easeOutCubic(clamp01(t / 0.8)));
 // Pulo com velocidade contínua: agacha antes, arco no ar, comprime ao pousar.
 // Todas as junções têm derivada zero, então não há tranco nem a 60 fps.
 // (Parábola crua sai do chão já em velocidade: a 60 fps isso vira um quadro de salto.)
@@ -316,8 +319,7 @@ export class MotionTrack {
       }
 
       case 'roll_in': {
-        const u = clamp01(t / 0.8);
-        Q.x = this.px - 2.4 * (1 - easeOutCubic(u));
+        Q.x = this.px + rollInX(t);
         Q.curl = t < 0.8 ? 1 : 1 - smooth((t - 0.8) / 0.32);
         Q.spin = -(Q.x - this.px) / RIG.ballR;
         Q.jump = hop(t, 0.86, 0.4, 0.15);
