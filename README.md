@@ -26,10 +26,16 @@ CZ_GPU=1 make render EP=ep01_tecla
 ```
 
 **GPU.** Sem `CZ_GPU=1` o Chrome renderiza no SwiftShader (CPU). Funciona, mas o render final leva horas
-em vez de minutos. Com ele, o motor testa os caminhos até a GPU (Vulkan, EGL, GL) e usa o primeiro que
-funcionar; a linha `GPU: ...` no começo do render diz qual. Se o Chrome não tiver SwiftShader (o Chromium
-do Void não traz), o render sem `CZ_GPU` avisa e vai pra GPU do mesmo jeito. `make gpu-check` mostra o que
-travou cada caminho. Se o Chrome não estiver num caminho padrão, defina `CHROME_PATH`.
+em vez de minutos. Com ele, o motor testa os caminhos até a GPU (EGL, GL, Vulkan) e usa o primeiro que
+funcionar; a linha `GPU: ...` no começo do render diz qual, e `CZ_ANGLE=vulkan` (ou `gl-egl`, `gl`) força
+um. O GL vem antes porque numa RX 5500 XT o Vulkan deu a mesma imagem uns 16% mais devagar. Se o
+SwiftShader não der WebGL2, o render sem `CZ_GPU` avisa e vai pra GPU do mesmo jeito. `make gpu-check`
+mostra o que travou cada caminho. Se o Chrome não estiver num caminho padrão, defina `CHROME_PATH`.
+
+No Void, o pacote `chromium` não traz o `libvulkan.so.1` que o ANGLE procura na pasta do próprio Chrome,
+e sem ele caem o Vulkan e o SwiftShader (que roda sobre Vulkan). O `make gpu-check` detecta e mostra o
+conserto: `sudo ln -s /usr/lib/libvulkan.so.1 /usr/lib/chromium/libvulkan.so.1`, ou, sem root,
+`CHROME_PATH` apontando pro Chrome que o Playwright baixa em `~/.cache/ms-playwright`.
 
 **ffmpeg.** O render pergunta ao ffmpeg o que ele tem e usa o primeiro destes que funcionar de verdade:
 `libx264` (CRF 14, tune animation, BT.709: é a qualidade final), `libx265`, e por último `h264_vaapi` ou

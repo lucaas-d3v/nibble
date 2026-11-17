@@ -12,9 +12,9 @@ import { FFMPEG } from './ffmpeg.mjs';
 const args = parseArgs(process.argv.slice(2));
 
 // As referências foram renderizadas no SwiftShader; na GPU o pixel muda (driver, precisão) e tudo
-// daria "MUDOU". Sem SwiftShader neste Chrome (o Chromium do Void não traz), não compara nem regrava.
+// daria "MUDOU". Sem SwiftShader com WebGL2 neste Chrome, não compara nem regrava.
 if (!(await swiftShaderRenderer())) {
-  console.log('Regressão visual pulada: este Chrome não tem SwiftShader, e as referências em tests/golden só batem pixel nele. Rode no CI.');
+  console.log('Regressão visual pulada: o SwiftShader deste Chrome não dá WebGL2, e as referências em tests/golden só batem pixel nele. Rode no CI (`make gpu-check` diz o que falta aqui).');
   process.exit(0);
 }
 // o render filho tem que ir pro SwiftShader mesmo com CZ_GPU=1 exportado no shell
