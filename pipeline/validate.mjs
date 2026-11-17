@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Valida um roteiro antes de gastar tempo de render.
-import { ANIMS, LOOKS, MOVES, TRANSITIONS, OUTFITS, CAMERAS, ENVIRONMENTS, TONES, PREFABS, PARTICLE_KINDS, LIMITS } from '../shared/catalog.js';
+import { ANIMS, MOODS, LOOKS, MOVES, TRANSITIONS, OUTFITS, CAMERAS, ENVIRONMENTS, TONES, PREFABS, PARTICLE_KINDS, LIMITS } from '../shared/catalog.js';
 import { buildTimeline } from '../shared/timeline.js';
 import { resolveEpisode, loadEpisode, parseArgs } from './common.mjs';
 
@@ -25,6 +25,10 @@ export function validate(ep) {
     oneOf(w, 'nibble.anim', s.nibble?.anim, ANIMS);
     oneOf(w, 'nibble.look', s.nibble?.look, LOOKS);
     oneOf(w, 'camera_move', s.camera_move, MOVES);
+    oneOf(w, 'nibble.mood', s.nibble?.mood, MOODS);
+    if (s.nibble?.anim === 'press' && !s.nibble?.target?.obj) err(w, 'anim "press" precisa de nibble.target: { obj, local?, at, hold? }');
+    if (s.nibble?.target?.obj && !(s.objects ?? []).some((o) => o.id === s.nibble.target.obj)) err(w, `nibble.target.obj "${s.nibble.target.obj}" não é um objeto da cena`);
+    for (const sh of s.shots ?? []) { oneOf(w, 'shots[].camera', sh.camera, CAMERAS); oneOf(w, 'shots[].camera_move', sh.camera_move, MOVES); if (sh.at === undefined) err(w, 'shot sem "at"'); }
     oneOf(w, 'transition', s.transition, TRANSITIONS);
     const words = (s.narration ?? '').replaceAll('||', ' ').trim().split(/\s+/).length;
     if (words > LIMITS.sceneWordsMax) warns.push(`${w}: ${words} palavras na cena (máx. recomendado ${LIMITS.sceneWordsMax})`);

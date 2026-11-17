@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { hash, smooth, clamp01, lerp, easeOutCubic } from '../util.js';
 
 /**
@@ -85,6 +86,41 @@ function setArm(T, side, g, k = 1) {
   T[`${p}z`] = lerp(T[`${p}z`], g[2], k);
   T[`${p}tw`] = lerp(T[`${p}tw`], g[3] * s, k);
   T[`${p}el`] = lerp(T[`${p}el`], g[4], k);
+}
+
+// ---------------------------------------------------------------------------
+// Cinemática inversa do braço (dois ossos) no espaço do tronco.
+// Devolve direção do braço, torção do ombro e dobra do cotovelo no formato dos canais do rig:
+// o ombro gira de "para baixo" até a direção do braço e torce em volta dele; o antebraço dobra
+// para o +Z local. A torção é escolhida para essa dobra apontar para o alvo.
+const ARM_A = 0.158, ARM_B = 0.19;
+const _qe = new THREE.Euler(0, 0, 0, 'YXZ'), _qq = new THREE.Quaternion();
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3();
+const DOWN_V = new THREE.Vector3(0, -1, 0);
+export function armIK(side, targetRoot, pelvisPitch, pelvisYaw, pelvisRoll) {
+  const s = side === 'L' ? 1 : -1;
+  // raiz -> tronco: desfaz a rotação da bacia (pivô 0,3 abaixo do centro do tronco)
+  const pivotY = RIG.ride - RIG.pelvisDrop;
+  _qq.setFromEuler(_qe.set(pelvisPitch, pelvisYaw, pelvisRoll)).invert();
+  const P = _v1.set(targetRoot[0], targetRoot[1] - pivotY, targetRoot[2]).applyQuaternion(_qq);
+  P.y -= RIG.pelvisDrop;
+  const S = _v2.set(s * RIG.shoulder[0], RIG.shoulder[1] - RIG.ride, RIG.shoulder[2]);
+  const d = P.clone().sub(S);
+  const L = Math.min(Math.max(d.length(), 0.05), ARM_A + ARM_B - 0.004);
+  const n = d.normalize();
+  // cotovelo aponta para trás, para baixo e para fora
+  const pole = _v3.set(s * 0.6, -0.5, -0.7);
+  const q = pole.sub(n.clone().multiplyScalar(pole.dot(n))).normalize();
+  const alpha = Math.acos(clamp((ARM_A * ARM_A + L * L - ARM_B * ARM_B) / (2 * ARM_A * L), -1, 1));
+  const u = n.clone().multiplyScalar(Math.cos(alpha)).add(q.clone().multiplyScalar(Math.sin(alpha))).normalize();
+  const E = S.clone().addScaledVector(u, ARM_A);
+  const f = n.clone().multiplyScalar(L).add(S).sub(E).normalize();
+  const elbow = Math.acos(clamp(u.dot(f), -1, 1));
+  const qDir = new THREE.Quaternion().setFromUnitVectors(DOWN_V, u);
+  const z0 = _v4.set(0, 0, 1).applyQuaternion(qDir), x0 = new THREE.Vector3(1, 0, 0).applyQuaternion(qDir);
+  const zd = f.clone().sub(u.clone().multiplyScalar(f.dot(u)));
+  const twist = zd.lengthSq() > 1e-8 ? Math.atan2(zd.dot(x0), zd.dot(z0)) : 0;
+  return { dir: [u.x, u.y, u.z], twist, elbow };
 }
 
 export class MotionTrack {
@@ -332,13 +368,53 @@ export class MotionTrack {
         break;
       }
 
+      case 'press': talk(speaking ? 0.6 : 0); break;
       default: talk(speaking ? 1 : 0);
+    }
+
+    // Apertar/tocar: cinemática inversa de dois ossos até o ponto (ctx.reach, mundo), empurra em 'at'
+    if (anim === 'press' && ctx.reach) {
+      const R = this._local(ctx.reach.point, Q.x, Q.z);
+      const side = R[0] >= 0 ? 'L' : 'R', s = side === 'L' ? 1 : -1;
+      const at = ctx.reach.at ?? 1.0, hold = ctx.reach.hold ?? 0.5;
+      const reach = smooth((t - (at - 0.6)) / 0.45) * (1 - smooth((t - (at + hold + 0.15)) / 0.45));
+      const push = smooth((t - at) / 0.1) * (1 - smooth((t - at - hold) / 0.12));
+      // o corpo inclina para o alvo; a conta do braço já considera essa inclinação
+      const lean = clamp((Math.hypot(R[0], R[2] - 0.2) - 0.25) * 0.6, 0, 0.3);
+      T.pelvisPitch += reach * lean + push * 0.03;
+      T.pelvisYaw += reach * 0.2 * Math.atan2(R[0], Math.max(0.2, R[2]));
+      const ik = armIK(side, [R[0], R[1] - 0.05 * push, R[2]], T.pelvisPitch, T.pelvisYaw, T.pelvisRoll);
+      const p = `a${side}`;
+      T[`${p}x`] = lerp(T[`${p}x`], ik.dir[0], reach);
+      T[`${p}y`] = lerp(T[`${p}y`], ik.dir[1], reach);
+      T[`${p}z`] = lerp(T[`${p}z`], ik.dir[2], reach);
+      T[`${p}tw`] = lerp(T[`${p}tw`], ik.twist, reach);
+      T[`${p}el`] = lerp(T[`${p}el`], ik.elbow, reach);
+      if (reach > 0.3 && t < at + hold + 0.3) look = 'reach';
+      T.browL += push * 0.012; T.browR += push * 0.012;
+      void s;
+    }
+
+    // Humor: viés de expressão por cima de qualquer animação (nibble.mood)
+    const MOOD = {
+      happy: { lower: 0.45, brow: 0.012, tilt: 0, lid: 0, ear: 0, roll: 0.04 },
+      excited: { lower: 0.35, brow: 0.025, tilt: 0, lid: 0.12, ear: -0.2, roll: 0, pupil: 0.15 },
+      serious: { lower: 0.15, brow: -0.006, tilt: -0.18, lid: -0.1, ear: 0.05, roll: 0 },
+      confused: { lower: 0, brow: 0.01, tilt: 0.12, lid: -0.05, ear: 0.18, roll: 0.12, asym: 0.018 },
+      sad: { lower: 0, brow: 0.008, tilt: 0.35, lid: -0.18, ear: 0.35, roll: -0.05, pitch: 0.08 },
+    }[this.cfg.mood];
+    if (MOOD) {
+      T.lower = Math.max(T.lower, MOOD.lower); T.lid += MOOD.lid; T.browTilt += MOOD.tilt;
+      T.browL += MOOD.brow + (MOOD.asym ?? 0); T.browR += MOOD.brow - (MOOD.asym ?? 0);
+      T.earL += MOOD.ear; T.earR += MOOD.ear; T.headRoll += MOOD.roll; T.headPitch += MOOD.pitch ?? 0;
+      T.pupil += MOOD.pupil ?? 0;
     }
 
     // Para onde olhar (o roteiro pode fixar com nibble.look)
     if (this.cfg.look === 'camera' || (this.cfg.look === 'focus' && focusL)) look = this.cfg.look;
     let L;
-    if (look === 'focus' && focusL) L = focusL;
+    if (look === 'reach' && ctx.reach) L = this._local(ctx.reach.point, Q.x, Q.z);
+    else if (look === 'focus' && focusL) L = focusL;
     else if (look === 'thought') L = [-0.9, 1.35, 1.1];
     else if (look === 'wander') L = focusL ?? [0.9 * (this.rnd(Math.floor(t / 3.2), 22) - 0.5), 1.05, 1.5];
     else L = ctx.camAt ? this._local(ctx.camAt(t), Q.x, Q.z) : [0, 1.0, 5];

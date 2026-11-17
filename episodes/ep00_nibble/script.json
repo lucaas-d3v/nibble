@@ -162,6 +162,113 @@
         "anim": "idle",
         "look": "camera"
       }
+    },
+    {
+      "id": "i_press",
+      "tone": "explain",
+      "environment": "bancada",
+      "narration": "Olha só: eu aperto, || e o contato fecha.",
+      "hud_text": "press",
+      "camera": "closeup",
+      "nibble": {
+        "pos": [
+          -0.3,
+          0,
+          0.6
+        ],
+        "rotY": 0.6,
+        "anim": "press",
+        "mood": "happy",
+        "target": {
+          "obj": "tk",
+          "at": 1.4,
+          "hold": 0.6
+        }
+      },
+      "objects": [
+        {
+          "id": "tk",
+          "type": "key",
+          "pos": [
+            0.05,
+            0,
+            0.8
+          ],
+          "rot": [
+            0,
+            -0.3,
+            0
+          ],
+          "scale": 0.45,
+          "label": "A"
+        }
+      ]
+    },
+    {
+      "id": "j_shots",
+      "tone": "explain",
+      "environment": "chip",
+      "narration": "Agora a câmera muda de plano sem cortar a cena. || Primeiro o geral, depois o detalhe, e o chip sobe.",
+      "hud_text": "shots + keys",
+      "camera": "hero",
+      "shots": [
+        {
+          "at": 2.4,
+          "camera": "prop",
+          "focus": "proc",
+          "blend": true
+        }
+      ],
+      "nibble": {
+        "pos": [
+          -0.45,
+          0,
+          0.7
+        ],
+        "rotY": 0.5,
+        "anim": "talk",
+        "mood": "confused"
+      },
+      "objects": [
+        {
+          "id": "proc",
+          "type": "cpu",
+          "pos": [
+            0.2,
+            1.3,
+            0
+          ],
+          "rot": [
+            1.0,
+            -0.25,
+            0
+          ],
+          "scale": 1.0,
+          "keys": [
+            {
+              "t": 0,
+              "pos": [
+                0.2,
+                1.25,
+                0
+              ]
+            },
+            {
+              "t": 4.0,
+              "pos": [
+                0.25,
+                1.85,
+                0
+              ],
+              "rot": [
+                1.15,
+                -0.6,
+                0
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

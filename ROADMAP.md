@@ -9,8 +9,8 @@ Ordem por impacto no vídeo final. ✅ feito · 🔶 parcial · ⬜ a fazer · �
 | 1 | Áudio: narração com tempo por letra (legenda e boca exatas), efeitos sonoros automáticos, fundo por cenário, trilha com ducking, `.srt` | ✅ testado com servidor falso · 🖥️ testar com a ElevenLabs real |
 | 2 | Render na GPU | 🖥️ nunca rodou numa placa de vídeo |
 | 2b | Captura de quadro ~23x mais rápida (CDP, PNG sem perdas) | ✅ |
-| 3 | Coreografia no roteiro: quadros-chave em objetos, vários planos por cena, humor do Nibble | ⬜ |
-| 4 | Nibble interage com objetos (apertar, tocar) | ⬜ |
+| 3 | Coreografia no roteiro: quadros-chave em objetos, vários planos por cena, humor do Nibble | ✅ |
+| 4 | Nibble interage com objetos (apertar, tocar) com cinemática inversa | ✅ |
 | 5 | Catálogo: SSD, cooler, HD, porta lógica, célula de memória, pacote, terminal, GPU; planta do chip gerada no Zig | ⬜ |
 
 ## Visual
@@ -18,7 +18,7 @@ Ordem por impacto no vídeo final. ✅ feito · 🔶 parcial · ⬜ a fazer · �
 |---|---|---|
 | 6 | Boca escondida sob o focinho | ⬜ decidir: mover/aumentar ou assumir olhos + filete como "voz" |
 | 7 | Troca bola → corpo é corte de 1 quadro | ⬜ |
-| 8 | Campo `mood` no roteiro | ⬜ (junto do 3) |
+| 8 | Campo `mood` no roteiro | ✅ |
 | 9 | `vazio` fraco; cenários por camada (kernel, RAM, rede, disco) | ⬜ |
 | 10 | Neblina volumétrica e feixes de luz | ⬜ pesa sem GPU |
 | 11 | HUD: setas, contadores, hexadecimal, código digitando, `*ênfase*` | ⬜ |

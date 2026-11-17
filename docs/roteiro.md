@@ -53,7 +53,19 @@ marca o ritmo, o filete âmbar da carapaça pulsa com a voz e os braços fazem g
 | `shock` | Pulo de susto com as mãos para cima, pupilas pequenas. Depois de ~2,5 s volta a falar ainda surpreso. |
 | `celebrate` | Três pulinhos com os braços para cima e olhos sorrindo, depois fala animado. |
 | `wave` | Acena com o braço do lado da câmera. Bom para abertura ou encerramento. |
+| `press` | Estica o braço e aperta um objeto (ver Coreografia). |
 | `idle` | Respira, troca o peso de perna, olha em volta. |
+
+### Coreografia
+
+- **Humor**: `nibble.mood`: `happy`, `excited`, `serious`, `confused`, `sad` (viés de expressão por cima da animação).
+- **Apertar/tocar**: `nibble.anim: "press"` com `nibble.target: { "obj": "<id>", "local": [x,y,z], "at": 1.4, "hold": 0.6 }`.
+  O braço chega no ponto por cinemática inversa, o corpo inclina e a cabeça acompanha. Numa `key`, a tecla
+  afunda sozinha quando a mão chega. O objeto precisa estar ao alcance (uns 0,3 do ombro): mesa, perto dos pés.
+- **Quadros-chave** em qualquer objeto: `"keys": [{ "t": 0, "pos": [...] }, { "t": 3, "pos": [...], "rot": [...], "scale": 1.2 }]`
+  (curva suave, sai e chega parado; combina com `float`).
+- **Vários planos na cena**: `"shots": [{ "at": 2.4, "camera": "prop", "focus": "<id>", "camera_move": "push", "blend": true }]`.
+  O primeiro plano é o `camera` da cena; `blend` faz a câmera ir suave do plano anterior em vez de cortar.
 
 ### Objetos (`objects[].type`)
 

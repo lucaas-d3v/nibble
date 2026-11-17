@@ -95,6 +95,9 @@ function load(episode, timeline) {
     }
     const group = new THREE.Group();
     group.visible = false;
+    // press numa tecla: a tecla afunda quando a mão chega (se o roteiro não disse quando)
+    const tgt = cfg.nibble?.anim === 'press' ? cfg.nibble.target : null;
+    if (tgt) for (const o of cfg.objects ?? []) if (o.id === tgt.obj && o.type === 'key' && o.press_at === undefined) { o.press_at = (tgt.at ?? 1) + 0.04; o.hold = tgt.hold ?? 0.5; }
     const objects = {};
     for (const o of cfg.objects ?? []) {
       const built = buildObject(o);
@@ -105,6 +108,20 @@ function load(episode, timeline) {
     const built = { cfg, group, objects, env: envName, trIn: transitions[si], trOut: transitions[si + 1] ?? 'cut' };
     built.focus = focusOf(cfg, built);
     built.hasFocus = !!(cfg.focus ?? cfg.objects?.length);
+    if (tgt && objects[tgt.obj]) {
+      const r = objects[tgt.obj].root;
+      r.updateMatrixWorld(true);
+      const local = tgt.local ?? (cfg.objects.find((o) => o.id === tgt.obj).type === 'key' ? [0, 0.78, 0] : [0, 0.3, 0]);
+      built.reach = { point: r.localToWorld(new THREE.Vector3(...local)).toArray(), at: tgt.at ?? 1, hold: tgt.hold ?? 0.5 };
+    }
+    // planos: o da cena começa em 0; shots[] adiciona os seguintes
+    const objPos = (id) => (objects[id] ? objects[id].root.position.clone() : null);
+    const shots = [{ at: 0, camera: cfg.camera ?? 'hero', move: cfg.camera_move, focusV: built.focus }];
+    for (const sh of (cfg.shots ?? []).slice().sort((a, b) => a.at - b.at)) {
+      const entry = { at: sh.at, camera: sh.camera ?? 'hero', move: sh.camera_move, blend: !!sh.blend, focusV: (typeof sh.focus === 'string' && objPos(sh.focus)) || (Array.isArray(sh.focus) ? new THREE.Vector3(...sh.focus) : built.focus) };
+      if (sh.at <= 0) shots[0] = { ...entry, at: 0 }; else shots.push(entry);
+    }
+    built.shots = shots;
     return built;
   });
   state.current = -1;
@@ -131,18 +148,37 @@ function updateWorld(t) {
     state.current = i;
   }
   state.envs.get(sc.env).update?.(t);
-  const cam = sc.cfg.camera ?? 'hero';
   const ncfg = sc.cfg.nibble ?? {};
   const np = ncfg.pos ?? [-0.5, 0, 0.5];
   const nPos = { x: np[0], y: np[1], z: np[2] };
-  const shotCfg = { move: sc.cfg.camera_move, tone: sc.cfg.tone, index: i, anim: ncfg.anim, trIn: sc.trIn, trOut: sc.trOut };
-  applyShot(camera, cameraShot(cam, lt, dur, nPos, sc.focus, shotCfg));
+  // plano ativo (vários por cena com shots[]); transições só na borda da cena,
+  // reações do personagem (susto, bola rolando, foco no apontar) só no primeiro plano
+  const shotAt = (t) => {
+    const S = sc.shots; let k = 0;
+    while (k + 1 < S.length && t >= S[k + 1].at) k++;
+    const sh = S[k], end = S[k + 1]?.at ?? dur;
+    const cfgShot = { move: sh.move, tone: sc.cfg.tone, index: i * 7 + k, anim: k === 0 ? ncfg.anim : null,
+      trIn: k === 0 ? sc.trIn : 'cut', trOut: k === S.length - 1 ? sc.trOut : 'cut' };
+    return { sh, k, slt: t - sh.at, sdur: end - sh.at, cfgShot };
+  };
+  const A = shotAt(lt);
+  let shot = cameraShot(A.sh.camera, A.slt, A.sdur, nPos, A.sh.focusV, A.cfgShot);
+  if (A.sh.blend && A.k > 0 && A.slt < 0.8) {
+    // mistura suave a partir do fim do plano anterior, em vez de corte
+    const P = sc.shots[A.k - 1], pd = A.sh.at - P.at;
+    const prev = cameraShot(P.camera, pd, pd, nPos, P.focusV, { ...A.cfgShot, index: i * 7 + A.k - 1, trIn: 'cut', trOut: 'cut' });
+    const u = A.slt / 0.8, w = u * u * u * (u * (u * 6 - 15) + 10);
+    for (const key of ['pos', 'target', 'focus']) shot[key] = shot[key].map((v, j) => prev[key][j] + (v - prev[key][j]) * w);
+    shot.fov = prev.fov + (shot.fov - prev.fov) * w;
+  }
+  applyShot(camera, shot);
   nibble.root.visible = ncfg.visible !== false;
   if (!sc.speech) sc.speech = makeSpeech(entry);
   nibble.update(lt, dur, ncfg, {
     key: `${state.loads}:${i}`,
     seed: 1 + i * 3.17 + (state.episode.episode_id.length % 7),
-    camAt: (t) => cameraPose(cam, t, dur, nPos, sc.focus, shotCfg).pos,
+    camAt: (t) => { const B = shotAt(t); return cameraPose(B.sh.camera, B.slt, B.sdur, nPos, B.sh.focusV, B.cfgShot).pos; },
+    reach: sc.reach ?? null,
     focus: sc.hasFocus ? sc.focus.toArray() : null,
     mouth: sc.speech.mouth,
     speaking: sc.speech.speaking,

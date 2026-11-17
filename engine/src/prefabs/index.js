@@ -322,14 +322,34 @@ export function buildObject(o) {
   const sc = Array.isArray(o.scale) ? o.scale : [o.scale ?? 1, o.scale ?? 1, o.scale ?? 1];
   if (o.type !== 'arrow') { root.position.set(...pos); root.scale.set(...sc); } else root.position.set(pos[0], 0, pos[2]);
   root.rotation.set(...rot);
+  // quadros-chave: keys: [{ t, pos?, rot?, scale? }], interpolados com curva C2 (sai e chega parado)
+  const keys = (o.keys ?? []).map((k) => ({ ...k, scale: k.scale === undefined ? undefined : Array.isArray(k.scale) ? k.scale : [k.scale, k.scale, k.scale] })).sort((a, b) => a.t - b.t);
+  const smoother = (t) => { t = Math.min(1, Math.max(0, t)); return t * t * t * (t * (t * 6 - 15) + 10); };
+  const keyed = (lt, field, base) => {
+    const ks = keys.filter((k) => k[field]);
+    if (!ks.length) return base;
+    if (lt <= ks[0].t) return ks[0][field];
+    for (let i = 1; i < ks.length; i++) {
+      if (lt <= ks[i].t) {
+        const u = smoother((lt - ks[i - 1].t) / (ks[i].t - ks[i - 1].t));
+        return ks[i - 1][field].map((v, j) => v + (ks[i][field][j] - v) * u);
+      }
+    }
+    return ks[ks.length - 1][field];
+  };
   return {
     root, local: inner.root,
     update(lt) {
       inner.update(lt);
       if (o.type === 'arrow') return;
+      if (keys.length) {
+        root.position.set(...keyed(lt, 'pos', pos));
+        root.rotation.set(...keyed(lt, 'rot', rot));
+        if (o.appear_at === undefined) root.scale.set(...keyed(lt, 'scale', sc));
+      }
       if (o.float) {
-        root.position.y = pos[1] + Math.sin(lt * 1.4) * 0.035;
-        root.rotation.y = rot[1] + Math.sin(lt * 0.6) * (o.float_swing ?? 0.22);
+        root.position.y = (keys.length ? root.position.y : pos[1]) + Math.sin(lt * 1.4) * 0.035;
+        root.rotation.y = (keys.length ? root.rotation.y : rot[1]) + Math.sin(lt * 0.6) * (o.float_swing ?? 0.22);
       }
       if (o.appear_at !== undefined) {
         const k = easeOutBack(ramp(lt, o.appear_at, 0.4));

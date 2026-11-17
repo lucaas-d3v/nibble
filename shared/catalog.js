@@ -1,5 +1,6 @@
 // Fonte única do que existe no motor. O validador e o roteirista (LLM) leem daqui.
-export const ANIMS = ['idle', 'talk', 'point', 'think', 'shock', 'celebrate', 'wave', 'roll_in'];
+export const ANIMS = ['idle', 'talk', 'point', 'think', 'shock', 'celebrate', 'wave', 'press', 'roll_in'];
+export const MOODS = ['neutral', 'happy', 'excited', 'serious', 'confused', 'sad'];
 export const OUTFITS = ['none', 'esd', 'hoodie', 'goggles'];
 export const CAMERAS = ['hero', 'closeup', 'face', 'prop', 'macro', 'top', 'low'];
 export const ENVIRONMENTS = ['bancada', 'chip', 'vazio'];
