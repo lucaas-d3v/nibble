@@ -423,7 +423,7 @@
       "shots": [
         {
           "at": 3.1,
-          "camera": "macro",
+          "camera": "low",
           "focus": "tecla",
           "blend": true
         }
@@ -462,9 +462,9 @@
           "id": "tecla",
           "type": "key",
           "pos": [
-            0.3,
+            0.6,
             0,
-            0.95
+            0.9
           ],
           "rot": [
             0,
@@ -479,16 +479,16 @@
         {
           "text": "TEM NOVIDADE?",
           "anchor": {
-            "obj": "tecla",
+            "obj": "tela",
             "local": [
-              0,
-              0.06,
-              0
+              0.25,
+              -0.22,
+              0.05
             ]
           },
           "side": "right",
           "at": 5.0,
-          "lift": 0.12
+          "lift": 0.06
         }
       ]
     }

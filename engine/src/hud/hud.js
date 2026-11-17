@@ -31,10 +31,11 @@ export class Hud {
       if (!this.hookEl) { this.hookEl = document.createElement('div'); this.hookEl.className = 'cz-hook'; this.el.appendChild(this.hookEl); }
       const text = typeof hook === 'string' ? hook : hook.text, until = hook.until ?? 2.6;
       this.hookEl.innerHTML = esc(text).replace(/\*(.+?)\*/g, '<span>$1</span>');
-      const kin = clamp01(t / 0.18), kout = clamp01((until - t) / 0.25);
-      this.hookK = Math.max(0, Math.min(kin, kout));
+      // visível já no quadro 0 (é o quadro que aparece no feed antes do play); só assenta a escala
+      const kin = clamp01(t / 0.3), kout = clamp01((until - t) / 0.25);
+      this.hookK = Math.max(0, kout);
       this.hookEl.style.opacity = this.hookK;
-      this.hookEl.style.transform = `translateY(${(1 - easeOutBack(kin)) * 3}cqmin) scale(${0.96 + 0.04 * kin})`;
+      this.hookEl.style.transform = `scale(${1.06 - 0.06 * easeOutBack(kin)})`;
     }
     this.pillText.textContent = scene.hud_text ?? '';
     this.pill.style.display = scene.hud_text ? '' : 'none';
