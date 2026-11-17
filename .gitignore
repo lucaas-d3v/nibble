@@ -1,0 +1,8 @@
+node_modules/
+dist/
+episodes/*/output/
+episodes/*/audio/
+.zig-cache/
+zig-out/
+*.log
+.DS_Store

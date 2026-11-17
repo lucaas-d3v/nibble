@@ -1,0 +1,22 @@
+{
+  "name": "camada-zero",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "validate": "node pipeline/validate.mjs",
+    "render": "node pipeline/render.mjs",
+    "assemble": "node pipeline/assemble.mjs"
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.1",
+    "vite": "^8.3.8"
+  }
+}
