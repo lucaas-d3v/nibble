@@ -42,6 +42,26 @@ Ajustes por linha de comando: `--samples`, `--aperture`, `--fps`, `--scale`, `--
 node pipeline/render.mjs ep00_nibble --stills --scene 8 --at 2.2 --scale 1 --samples 16 --clean
 ```
 
+## Cenários
+
+`engine/src/stage/environments.js`. Regras: o centro alto do quadro (onde flutua o objeto) fica calmo,
+o detalhe vai para as laterais e para o fundo, toda superfície tem desgaste, e a luz vem de fontes que
+existem na cena.
+
+- **`bancada`**: oficina de eletrônica à noite. Mesa de madeira com riscos e anéis de caneca, manta
+  antiestática, chapa perfurada com pintura lascada, ferramentas, post-its, gaveteiro de componentes,
+  bobinas de fio, osciloscópio, monitor com código, caneca, protoboard com jumpers, multímetro,
+  resistores, cabos, planta, cordão de lâmpadas (vira bokeh com profundidade de campo) e luminária
+  articulada fora do quadro com poeira no feixe.
+- **`chip`**: dentro do silício. Chão de interconexão roteada (gen.zig) com pulsos de dados correndo
+  pelas próprias trilhas acesas, torres de lógica com células de memória acesas, capacitores,
+  pilares de vias, barramento suspenso, elétrons à deriva e céu com brilho quente no horizonte.
+- **`vazio`**: estúdio com fundo infinito, halo atrás do personagem, pontos de luz e poeira.
+
+O desgaste vem de `gen_surface` em `gen.zig` (madeira, metal pintado, borracha): ruído ladrilhável,
+riscos, manchas, lascas e poeira, em mapas de cor, relevo e rugosidade. Use `wornMaterial(cor, tipo)`
+de `engine/src/sim/gen.js` em qualquer objeto novo.
+
 ## O Nibble
 
 Tatu-bola em pé, modelado inteiro em código (`engine/src/character/`):

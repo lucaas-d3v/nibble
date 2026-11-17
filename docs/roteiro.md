@@ -30,7 +30,7 @@ Regras editoriais:
 | Campo | Valores |
 |---|---|
 | `outfit` | `none`, `esd` (pulseira antiestática), `hoodie`, `goggles` |
-| `environment` | `bancada` (oficina), `chip` (dentro do silício), `vazio` (estúdio escuro) |
+| `environment` | `bancada` (oficina à noite, cheia de objetos; bom para hardware físico), `chip` (cidade de lógica dentro do silício; bom para o que acontece eletricamente), `vazio` (estúdio escuro; bom para conceito abstrato e software) |
 | `tone` | `hook`, `curious`, `explain`, `payoff`, `outro` |
 | `camera` | `hero` (plano geral, padrão), `closeup` (Nibble da cintura para cima), `face` (rosto; bom para reação e thumbnail), `prop` e `macro` (no objeto de `focus`), `top`, `low` |
 | `nibble.anim` | ver tabela abaixo |

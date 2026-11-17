@@ -77,7 +77,9 @@ fn ci(x: u32, y: u32) u32 {
 }
 
 // ---------------------------------------------------------------- rasterização
-fn plot(m: []u8, x: i32, y: i32, c: f32) void {
+var paint_alpha: f32 = 1.0;
+fn plot(m: []u8, x: i32, y: i32, c0: f32) void {
+    const c = @min(c0, 1.0) * paint_alpha;
     if (c <= 0) return;
     const s: i32 = @intCast(size);
     const ux: usize = @intCast(@mod(x, s));
@@ -330,10 +332,26 @@ fn route(a: u32, b: u32, max_cost: u32) u32 {
     return len;
 }
 
+var routes: []f32 = &.{};
+var routes_len: usize = 0;
+fn rpush(v: f32) void {
+    if (routes_len < routes.len) {
+        routes[routes_len] = v;
+        routes_len += 1;
+    }
+}
+
 fn drawPath(len: u32, r: f32, glow: u32) void {
     // percorre em coordenadas "desembrulhadas" para atravessar a borda sem riscar a imagem
     var px = center(path_buf[0] % G);
     var py = center(path_buf[0] / G);
+    const fits = routes_len + 2 + len * 2 <= routes.len;
+    if (fits) {
+        rpush(@floatFromInt(len));
+        rpush(@floatFromInt(glow));
+        rpush(px);
+        rpush(py);
+    }
     var i: u32 = 1;
     while (i < len) : (i += 1) {
         const c0 = path_buf[i - 1];
@@ -352,6 +370,10 @@ fn drawPath(len: u32, r: f32, glow: u32) void {
         if (glow == 2) capsule(masks[M_GLOW_C], px, py, qx, qy, r * 0.55);
         px = qx;
         py = qy;
+        if (fits) {
+            rpush(px);
+            rpush(py);
+        }
     }
 }
 
@@ -551,6 +573,11 @@ export fn gen_release() void {
     if (heap.len > 0) A.free(heap);
     if (pads.len > 0) A.free(pads);
     if (path_buf.len > 0) A.free(path_buf);
+    if (routes.len > 0) A.free(routes);
+    if (hbuf.len > 0) A.free(hbuf);
+    routes = &.{};
+    routes_len = 0;
+    hbuf = &.{};
     occ = &.{};
     dist = &.{};
     prev = &.{};
@@ -581,6 +608,9 @@ export fn gen_board(px: u32, grid: u32, seed: u32, st: u32, components: u32, net
     heap = A.alloc(u64, ncells * 16) catch return 0;
     pads = A.alloc(Pad, 4096) catch return 0;
     path_buf = A.alloc(u32, ncells) catch return 0;
+    routes = A.alloc(f32, 400000) catch return 0;
+    routes_len = 0;
+    paint_alpha = 1.0;
     npads = 0;
 
     const wmin: u32 = @max(4, grid / 14);
@@ -603,4 +633,191 @@ export fn gen_board(px: u32, grid: u32, seed: u32, st: u32, components: u32, net
 
 export fn gen_map(i: u32) [*]u8 {
     return maps[i].ptr;
+}
+
+export fn gen_routes() [*]f32 {
+    return routes.ptr;
+}
+
+export fn gen_routes_len() u32 {
+    return @intCast(routes_len);
+}
+
+// ================================================================ superfícies gastas
+//
+// Ruído ladrilhável + riscos + manchas + poeira. É o que tira o "limpo demais":
+// nenhuma superfície real tem cor e brilho uniformes.
+//   kind 0: madeira/laminado de mesa (veio, anéis de caneca, riscos ao longo do veio)
+//   kind 1: metal pintado (lascas mostrando o metal, escorridos, riscos em qualquer direção)
+//   kind 2: borracha/concreto (manchado, marcas de dedo brilhantes, grãos)
+
+var hbuf: []f32 = &.{};
+
+fn lattice(ix: i32, iy: i32, px: i32, py: i32, seed: u32) f32 {
+    const x: u32 = @intCast(@mod(ix, px));
+    const y: u32 = @intCast(@mod(iy, py));
+    return hash2(x +% seed *% 7919, y +% seed *% 104729);
+}
+
+fn vnoise(x: f32, y: f32, px: i32, py: i32, seed: u32) f32 {
+    const fx = @floor(x);
+    const fy = @floor(y);
+    const ix: i32 = @intFromFloat(fx);
+    const iy: i32 = @intFromFloat(fy);
+    const tx = x - fx;
+    const ty = y - fy;
+    const sx = tx * tx * (3 - 2 * tx);
+    const sy = ty * ty * (3 - 2 * ty);
+    const a = lattice(ix, iy, px, py, seed);
+    const b = lattice(ix + 1, iy, px, py, seed);
+    const c = lattice(ix, iy + 1, px, py, seed);
+    const d = lattice(ix + 1, iy + 1, px, py, seed);
+    return mix(mix(a, b, sx), mix(c, d, sx), sy);
+}
+
+/// fBm ladrilhável: u, v em 0..1; períodos base inteiros por eixo.
+fn fbm(u: f32, v: f32, bx: i32, by: i32, oct: u32, seed: u32) f32 {
+    var sum: f32 = 0;
+    var amp: f32 = 0.5;
+    var norm: f32 = 0;
+    var f: i32 = 1;
+    var o: u32 = 0;
+    while (o < oct) : (o += 1) {
+        const px = bx * f;
+        const py = by * f;
+        sum += amp * vnoise(u * @as(f32, @floatFromInt(px)), v * @as(f32, @floatFromInt(py)), px, py, seed +% o *% 31);
+        norm += amp;
+        amp *= 0.5;
+        f *= 2;
+    }
+    return sum / norm;
+}
+
+fn smoothstep(a: f32, b: f32, x: f32) f32 {
+    const t = @max(0.0, @min(1.0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+}
+
+fn scratches(m: []u8, count: u32, along: f32, spread: f32, lmin: f32, lmax: f32) void {
+    var k: u32 = 0;
+    while (k < count) : (k += 1) {
+        const x = rndf() * @as(f32, @floatFromInt(size));
+        const y = rndf() * @as(f32, @floatFromInt(size));
+        const ang = along + (rndf() - 0.5) * spread;
+        const l = lmin + rndf() * (lmax - lmin);
+        // risco levemente curvo: dois segmentos
+        const mx = x + @cos(ang) * l * 0.5;
+        const my = y + @sin(ang) * l * 0.5;
+        const a2 = ang + (rndf() - 0.5) * 0.25;
+        paint_alpha = 0.25 + rndf() * 0.6;
+        const r = 0.45 + rndf() * 0.5;
+        capsule(m, x, y, mx, my, r);
+        capsule(m, mx, my, mx + @cos(a2) * l * 0.5, my + @sin(a2) * l * 0.5, r * 0.8);
+    }
+    paint_alpha = 1.0;
+}
+
+export fn gen_surface(px: u32, seed: u32, kind: u32) u32 {
+    gen_release();
+    size = px;
+    rng = if (seed == 0) 0x9E3779B9 else seed *% 2654435761 +% 7;
+    const npx: usize = @as(usize, px) * px;
+    for (masks[0..2]) |*m| {
+        m.* = A.alloc(u8, npx) catch return 0;
+        @memset(m.*, 0);
+    }
+    for (&maps) |*m| m.* = A.alloc(u8, npx * 4) catch return 0;
+    hbuf = A.alloc(f32, npx) catch return 0;
+
+    const fs: f32 = @floatFromInt(px);
+    const sc = masks[0]; // riscos
+    const sp = masks[1]; // anéis / lascas desenhadas
+    switch (kind) {
+        0 => {
+            scratches(sc, 260, 0.0, 0.5, fs * 0.01, fs * 0.09);
+            scratches(sc, 60, 0.0, 6.28, fs * 0.005, fs * 0.03);
+            // anéis de caneca: anel escuro meio apagado
+            var k: u32 = 0;
+            while (k < 3) : (k += 1) {
+                const cx = rndf() * fs;
+                const cy = rndf() * fs;
+                const r = fs * (0.035 + rndf() * 0.012);
+                paint_alpha = 0.35 + rndf() * 0.35;
+                var a: f32 = 0;
+                while (a < 6.2) : (a += 0.08) {
+                    if (rndf() < 0.15) continue;
+                    capsule(sp, cx + @cos(a) * r, cy + @sin(a) * r, cx + @cos(a + 0.08) * r, cy + @sin(a + 0.08) * r, fs * 0.0025);
+                }
+            }
+            paint_alpha = 1.0;
+        },
+        1 => scratches(sc, 220, 0.0, 6.28, fs * 0.004, fs * 0.05),
+        else => scratches(sc, 90, 0.0, 6.28, fs * 0.004, fs * 0.03),
+    }
+
+    var y: u32 = 0;
+    while (y < px) : (y += 1) {
+        var x: u32 = 0;
+        while (x < px) : (x += 1) {
+            const i: usize = y * px + x;
+            const u = (@as(f32, @floatFromInt(x)) + 0.5) / fs;
+            const v = (@as(f32, @floatFromInt(y)) + 0.5) / fs;
+            const s = @as(f32, @floatFromInt(sc[i])) / 255.0;
+            const ring = @as(f32, @floatFromInt(sp[i])) / 255.0;
+            const dust = if (hash2(x +% seed, y) > 0.9975) hash2(y, x) else 0.0;
+            var c: f32 = 0;
+            var h: f32 = 0;
+            var rough: f32 = 0;
+            var metal: f32 = 0;
+            switch (kind) {
+                0 => {
+                    const g = fbm(u, v, 3, 36, 4, seed);
+                    const band = 0.5 + 0.5 * @sin((g * 9.0 + u * 2.0) * 3.14159);
+                    const stain = smoothstep(0.6, 0.78, fbm(u, v, 3, 3, 4, seed +% 50));
+                    c = 0.72 + 0.2 * g + 0.08 * band - 0.18 * stain - 0.25 * ring + 0.22 * s + 0.3 * dust;
+                    h = 0.35 * g + 0.15 * band - 0.6 * s;
+                    rough = 0.6 + 0.15 * (g - 0.5) - 0.22 * stain + 0.18 * s - 0.1 * ring;
+                },
+                1 => {
+                    const m = fbm(u, v, 5, 5, 5, seed);
+                    const chip = smoothstep(0.71, 0.74, fbm(u, v, 16, 16, 3, seed +% 9));
+                    const streak = smoothstep(0.55, 0.8, fbm(u, v, 40, 2, 3, seed +% 21)) * 0.6;
+                    c = (0.82 + 0.16 * m - 0.12 * streak) * (1 - chip) + 0.68 * chip + 0.18 * s + 0.35 * dust;
+                    h = 0.2 * m - 0.5 * chip - 0.4 * s;
+                    rough = mix(0.5 + 0.2 * m + 0.1 * streak, 0.32, chip) + 0.12 * s;
+                    metal = chip * 0.9 + s * 0.5;
+                },
+                else => {
+                    const m = fbm(u, v, 6, 6, 5, seed);
+                    const smudge = smoothstep(0.62, 0.8, fbm(u, v, 4, 4, 4, seed +% 33));
+                    c = 0.78 + 0.22 * m + 0.12 * s + 0.4 * dust;
+                    h = 0.25 * m + 0.25 * hash2(x, y +% seed) * 0.3 - 0.3 * s;
+                    rough = 0.82 + 0.1 * m - 0.35 * smudge;
+                },
+            }
+            hbuf[i] = h;
+            const cb = @max(0.0, @min(1.0, c)) * 255.0;
+            put(maps[0], i, cb, cb, cb, 255);
+            put(maps[2], i, 255, @max(0.05, @min(1.0, rough)) * 255, @max(0.0, @min(1.0, metal)) * 255, 255);
+        }
+    }
+    // normal a partir da altura
+    y = 0;
+    while (y < px) : (y += 1) {
+        var x: u32 = 0;
+        while (x < px) : (x += 1) {
+            const i: usize = y * px + x;
+            const xl = (x + px - 1) % px;
+            const xr = (x + 1) % px;
+            const yu = (y + px - 1) % px;
+            const yd = (y + 1) % px;
+            const k: f32 = 3.0;
+            const nx = -(hbuf[y * px + xr] - hbuf[y * px + xl]) * k;
+            const ny = -(hbuf[yd * px + x] - hbuf[yu * px + x]) * k;
+            const inv = 1.0 / @sqrt(nx * nx + ny * ny + 1.0);
+            put(maps[1], i, (nx * inv * 0.5 + 0.5) * 255, (ny * inv * 0.5 + 0.5) * 255, (inv * 0.5 + 0.5) * 255, 255);
+        }
+    }
+    @memset(maps[3], 0);
+    return 1;
 }

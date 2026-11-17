@@ -113,6 +113,7 @@ function updateWorld(t) {
     scene.fog = new THREE.Fog(...env.fog);
     state.current = i;
   }
+  state.envs.get(sc.env).update?.(t);
   const cam = sc.cfg.camera ?? 'hero';
   camera.fov = FOV[cam] ?? 30;
   camera.updateProjectionMatrix();
