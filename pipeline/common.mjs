@@ -26,7 +26,7 @@ export function audioDurations(dir, episode) {
       const f = join(dir, 'audio', `${scene.id}.${ext}`);
       if (!existsSync(f)) continue;
       const d = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString());
-      out[scene.id] = d + 0.35; // respiro entre cenas
+      out[scene.id] = d + 0.1 + 0.3; // atraso da fala + respiro entre cenas
       files[scene.id] = f;
       break;
     }
@@ -34,9 +34,19 @@ export function audioDurations(dir, episode) {
   return { durations: out, files };
 }
 
+/** Alinhamentos salvos pelo voice.mjs (audio/<scene_id>.align.json). */
+export function audioAlignments(dir, episode) {
+  const out = {};
+  for (const scene of episode.scenes) {
+    const f = join(dir, 'audio', `${scene.id}.align.json`);
+    if (existsSync(f)) out[scene.id] = JSON.parse(readFileSync(f, 'utf8'));
+  }
+  return out;
+}
+
 export function timelineFor(dir, episode, fps = 30) {
   const { durations, files } = audioDurations(dir, episode);
-  return { timeline: buildTimeline(episode, durations, fps), audioFiles: files };
+  return { timeline: buildTimeline(episode, durations, fps, audioAlignments(dir, episode)), audioFiles: files };
 }
 
 export function parseArgs(argv) {

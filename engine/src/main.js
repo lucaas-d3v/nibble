@@ -43,6 +43,20 @@ function focusOf(cfg, built) {
 // Boca: abre e fecha por sílaba dentro de cada trecho de legenda; fechada nas pausas.
 const VOWELS = /[aeiouáéíóúâêôãõàü]+/gi;
 function makeSpeech(entry) {
+  // com alinhamento real (ElevenLabs), a boca abre em cada vogal no tempo exato
+  if (entry.visemes?.length) {
+    const vis = entry.visemes.map(([a, b]) => [a - entry.start, b - entry.start]);
+    return {
+      mouth(lt) {
+        for (const [a, b] of vis) {
+          if (lt < a - 0.04) break;
+          if (lt <= b + 0.04) return Math.sin(Math.PI * Math.min(1, Math.max(0, (lt - a + 0.04) / (b - a + 0.08)))) ** 0.8;
+        }
+        return 0;
+      },
+      speaking: (lt) => entry.captions.some((c) => lt >= c.start - entry.start - 0.15 && lt < c.end - entry.start + 0.35),
+    };
+  }
   const caps = entry.captions.map((c) => ({
     s: c.start - entry.start, e: c.end - entry.start,
     syl: Math.max(1, (c.text.match(VOWELS) || []).length), seed: c.start * 13.7,

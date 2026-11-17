@@ -80,10 +80,14 @@ for (const scene of only) {
     previous_text: i > 0 ? plain(episode.scenes[i - 1].narration) : undefined,
     next_text: i < episode.scenes.length - 1 ? plain(episode.scenes[i + 1].narration) : undefined,
   };
-  const res = await api(`/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
-    method: 'POST', headers: { 'content-type': 'application/json', accept: 'audio/mpeg' }, body: JSON.stringify(body),
+  // with-timestamps: além do áudio, devolve o tempo de cada caractere (legenda e boca exatas)
+  const res = await api(`/v1/text-to-speech/${voiceId}/with-timestamps?output_format=mp3_44100_128`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
   });
-  writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+  const json = await res.json();
+  writeFileSync(out, Buffer.from(json.audio_base64, 'base64'));
+  const al = json.alignment ?? json.normalized_alignment;
+  if (al?.characters) writeFileSync(join(audioDir, `${scene.id}.align.json`), JSON.stringify(al));
   cache[scene.id] = key;
   writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
   spent += plain(scene.narration).length;

@@ -15,7 +15,7 @@ help:
 	@echo "make master EP=...       master ProRes 4444"
 	@echo "make voices              lista as vozes da ElevenLabs (precisa ELEVENLABS_API_KEY)"
 	@echo "make voice EP=...        gera a narração de cada cena (ElevenLabs, com cache)"
-	@echo "make video EP=...        junta a narração de audio/ ao vídeo"
+	@echo "make video EP=...        mixa voz, efeitos, fundo e trilha, gera o mp4 final e o .srt"
 	@echo "make wasm                recompila os módulos Zig (partículas e gerador de placas)"
 	@echo "Use CZ_GPU=1 para renderizar na GPU."
 

@@ -156,6 +156,19 @@ make render EP=ep01_tecla             # as durações passam a vir do áudio
 make video  EP=ep01_tecla             # mixa, normaliza em -14 LUFS e gera <ep>_final.mp4
 ```
 
+O `make voice` pede à ElevenLabs o tempo de cada letra (`audio/<cena>.align.json`): as legendas
+passam a sair dos tempos reais das palavras e a boca do Nibble abre em cada vogal no instante certo.
+
+O `make video` monta o áudio final:
+- **efeitos sonoros automáticos**, sintetizados no ffmpeg (sem arquivo de terceiros): chicote, mergulho
+  com impacto, subida, pulo, pouso, bola rolando, clique de tecla, faíscas, digitação; posicionados a
+  partir do roteiro (transições, animações, objetos);
+- **fundo por cenário** (sala, zumbido elétrico, drone);
+- **trilha opcional**: coloque `music.mp3` em `episodes/<ep>/audio/` ou na raiz; ela abaixa sozinha
+  quando há voz (sidechain);
+- normalização em -14 LUFS e a legenda `<ep>.srt` para a plataforma.
+`--no-sfx` desliga os efeitos.
+
 Há cache por cena: mudou uma frase, só aquela cena é gerada de novo (`--force` refaz tudo).
 Cada caractere custa ~1 crédito; um episódio de ~55 s gasta uns 750. `voice.json` também aceita
 `model_id`, `stability`, `similarity_boost`, `style` e `speed`. Também dá para gravar a própria

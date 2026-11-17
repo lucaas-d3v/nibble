@@ -32,7 +32,33 @@ function chunk(segment) {
   return out;
 }
 
-export function buildTimeline(episode, audioDurations = {}, fps = 30) {
+const VOWEL = /[aeiouáéíóúâêôãõàüy]/i;
+
+/**
+ * Palavras com tempo a partir do alinhamento por caractere da ElevenLabs
+ * ({ characters, character_start_times_seconds, character_end_times_seconds }).
+ * Ignora o que estiver dentro de tags (<break .../>). Devolve também os intervalos das vogais (boca).
+ */
+export function wordsFromAlignment(al) {
+  const words = [], vowels = [];
+  let cur = null, inTag = false;
+  al.characters.forEach((ch, i) => {
+    const s = al.character_start_times_seconds[i], e = al.character_end_times_seconds[i];
+    if (ch === '<') { inTag = true; return; }
+    if (inTag) { if (ch === '>') inTag = false; return; }
+    if (/\s/.test(ch)) { if (cur) words.push(cur); cur = null; return; }
+    if (!cur) cur = { text: '', start: s, end: e };
+    cur.text += ch; cur.end = e;
+    if (VOWEL.test(ch)) vowels.push([s, e]);
+  });
+  if (cur) words.push(cur);
+  return { words, vowels };
+}
+
+/** Atraso da fala dentro da cena (o mesmo usado na mixagem). */
+export const VOICE_OFFSET = 0.1;
+
+export function buildTimeline(episode, audioDurations = {}, fps = 30, alignments = {}) {
   let cursor = 0;
   const scenes = episode.scenes.map((scene) => {
     const dur = audioDurations[scene.id] ?? estimateSceneDuration(scene);
@@ -50,7 +76,21 @@ export function buildTimeline(episode, audioDurations = {}, fps = 30) {
       }
       if (i < segs.length - 1) t += BEAT_PAUSE;
     });
-    const entry = { id: scene.id, start: cursor, end: cursor + dur, captions };
+    // com alinhamento real, as legendas saem dos tempos de cada palavra
+    let visemes = null;
+    if (alignments[scene.id]) {
+      const { words, vowels } = wordsFromAlignment(alignments[scene.id]);
+      const at = (x) => cursor + VOICE_OFFSET + x;
+      captions.length = 0;
+      let cur = [];
+      const flush = () => { if (cur.length) captions.push({ text: cur.map((w) => w.text).join(' '), start: at(cur[0].start), end: at(cur[cur.length - 1].end) }); cur = []; };
+      for (const w of words) { cur.push(w); if (cur.length >= MAX_WORDS_PER_CHUNK || /[.!?…,;:]$/.test(w.text)) flush(); }
+      flush();
+      // legenda fica na tela até a próxima começar (sem piscar entre palavras)
+      for (let k = 0; k < captions.length - 1; k++) captions[k].end = Math.max(captions[k].end, Math.min(captions[k + 1].start, captions[k].end + 0.4));
+      visemes = vowels.map(([a, b]) => [at(a), at(b)]);
+    }
+    const entry = { id: scene.id, start: cursor, end: cursor + dur, captions, visemes };
     cursor += dur;
     return entry;
   });
