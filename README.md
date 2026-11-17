@@ -71,13 +71,21 @@ O resto fica em JavaScript de propósito: quem desenha é a GPU, e passar a mont
 
 ## Narração
 
-O motor não gera voz. Sem áudio, a duração de cada cena é estimada pela contagem de palavras.
-Quando tiver a narração, salve um arquivo por cena em `episodes/<ep>/audio/<scene_id>.wav` e rode:
+Sem áudio, a duração de cada cena é estimada pela contagem de palavras. A narração sai da ElevenLabs:
 
 ```bash
-make render EP=ep01_tecla    # as durações passam a vir do áudio
-make video  EP=ep01_tecla    # mixa, normaliza em -14 LUFS e gera <ep>_final.mp4
+export ELEVENLABS_API_KEY=sk_...      # só no ambiente; nunca em arquivo do repositório
+make voices                           # lista as vozes da conta, com o ID
+echo '{ "voice_id": "SEU_ID" }' > voice.json
+make voice  EP=ep01_tecla             # um mp3 por cena em audio/; "||" vira pausa
+make render EP=ep01_tecla             # as durações passam a vir do áudio
+make video  EP=ep01_tecla             # mixa, normaliza em -14 LUFS e gera <ep>_final.mp4
 ```
+
+Há cache por cena: mudou uma frase, só aquela cena é gerada de novo (`--force` refaz tudo).
+Cada caractere custa ~1 crédito; um episódio de ~55 s gasta uns 750. `voice.json` também aceita
+`model_id`, `stability`, `similarity_boost`, `style` e `speed`. Também dá para gravar a própria
+voz: salve `audio/<scene_id>.wav` e pule o `make voice`.
 
 ## Estrutura
 

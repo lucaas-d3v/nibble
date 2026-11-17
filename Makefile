@@ -1,7 +1,7 @@
 EP ?= ep01_tecla
 ZIG ?= zig
 
-.PHONY: help install dev validate stills preview render master video wasm
+.PHONY: help install dev validate stills preview render master voice voices video wasm
 
 help:
 	@echo "make install             instala dependências"
@@ -11,6 +11,8 @@ help:
 	@echo "make preview EP=... [SCENE=n]  vídeo rápido (540x960, 15 fps)"
 	@echo "make render EP=...       vídeo final (1080x1920, 30 fps, 16 amostras)"
 	@echo "make master EP=...       master ProRes 4444"
+	@echo "make voices              lista as vozes da ElevenLabs (precisa ELEVENLABS_API_KEY)"
+	@echo "make voice EP=...        gera a narração de cada cena (ElevenLabs, com cache)"
 	@echo "make video EP=...        junta a narração de audio/ ao vídeo"
 	@echo "make wasm                recompila o simulador Zig"
 	@echo "Use CZ_GPU=1 para renderizar na GPU."
@@ -35,6 +37,12 @@ render:
 
 master:
 	node pipeline/render.mjs $(EP) --codec prores
+
+voices:
+	node pipeline/voice.mjs --voices
+
+voice:
+	node pipeline/voice.mjs $(EP) $(if $(SCENE),--scene $(SCENE),)
 
 video:
 	node pipeline/assemble.mjs $(EP)
