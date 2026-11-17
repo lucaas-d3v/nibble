@@ -10,6 +10,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, resolveEpisode, loadEpisode, timelineFor, parseArgs } from './common.mjs';
 import { ensureSfx, sfxEvents } from './sfx.mjs';
+import { FFMPEG, filterNames, requireEncoder, requireFilters } from './ffmpeg.mjs';
 import { VOICE_OFFSET } from '../shared/timeline.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -73,7 +74,9 @@ if (music) {
 if (!mix.length) { console.log('Nada para mixar (sem voz, sem efeitos, sem trilha). Vídeo mudo em', video); process.exit(0); }
 filters.push(`${mix.join('')}amix=inputs=${mix.length}:normalize=0,apad,atrim=0:${total.toFixed(3)},loudnorm=I=-14:TP=-1.5:LRA=11[out]`);
 
+requireFilters(filterNames(filters.join(';')), 'make video (mixagem)');
+requireEncoder('aac', 'make video (áudio do mp4)');
 const out = join(dir, 'output', `${episode.episode_id}_final.mp4`);
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', video, ...inputs, '-filter_complex', filters.join(';'),
+execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', video, ...inputs, '-filter_complex', filters.join(';'),
   '-map', '0:v', '-map', '[out]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out], { stdio: 'inherit' });
 console.log(`${out}\n  voz: ${voice.length} cenas · efeitos: ${fx.length} · trilha: ${music ? 'sim (com ducking)' : 'não'} · legenda: ${episode.episode_id}.srt`);

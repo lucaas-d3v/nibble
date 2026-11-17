@@ -2,6 +2,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { buildTimeline } from '../shared/timeline.js';
+import { FFPROBE } from './ffmpeg.mjs';
 
 export const ROOT = resolve(import.meta.dirname, '..');
 
@@ -25,7 +26,7 @@ export function audioDurations(dir, episode) {
     for (const ext of ['wav', 'flac', 'mp3', 'm4a']) {
       const f = join(dir, 'audio', `${scene.id}.${ext}`);
       if (!existsSync(f)) continue;
-      const d = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString());
+      const d = Number(execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString());
       out[scene.id] = d + 0.1 + 0.3; // atraso da fala + respiro entre cenas
       files[scene.id] = f;
       break;

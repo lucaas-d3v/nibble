@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveTransitions } from '../engine/src/stage/camera.js';
+import { FFMPEG, filterNames, requireDemuxer, requireFilters } from './ffmpeg.mjs';
 
 const SR = 48000;
 
@@ -40,10 +41,15 @@ const SOUNDS = {
 
 export function ensureSfx(dir) {
   mkdirSync(dir, { recursive: true });
-  for (const [name, { src, af }] of Object.entries(SOUNDS)) {
+  const todo = Object.entries(SOUNDS).filter(([name]) => !existsSync(join(dir, `${name}.wav`)));
+  if (todo.length) {
+    // confere antes: um filtro ausente vira "Filter not found" no meio da lista, sem dizer o que fazer
+    requireDemuxer('lavfi', 'efeitos sonoros (sfx.mjs)', '--enable-avdevice --enable-indev=lavfi (vêm ligados por padrão)');
+    requireFilters(todo.flatMap(([, { src, af }]) => [...filterNames(src), ...filterNames(af), 'aresample']), 'efeitos sonoros (sfx.mjs)');
+  }
+  for (const [name, { src, af }] of todo) {
     const out = join(dir, `${name}.wav`);
-    if (existsSync(out)) continue;
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', src, '-af', `${af},aresample=${SR}`, '-ac', '1', '-ar', String(SR), out]);
+    execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', src, '-af', `${af},aresample=${SR}`, '-ac', '1', '-ar', String(SR), out]);
   }
   return Object.fromEntries(Object.keys(SOUNDS).map((n) => [n, join(dir, `${n}.wav`)]));
 }
