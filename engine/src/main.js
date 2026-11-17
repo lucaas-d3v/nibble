@@ -14,6 +14,8 @@ import { loadGen } from './sim/gen.js';
 import { buildTimeline } from '../../shared/timeline.js';
 import { hash } from './util.js';
 
+const NO_SCENE = Object.freeze({}); // HUD do teaser: sem pílula, camada nem overlays
+
 const params = new URLSearchParams(location.search);
 const stageEl = document.getElementById('stage');
 const scene = new THREE.Scene();
@@ -84,7 +86,11 @@ function load(episode, timeline) {
   nibble.resetMotion();
   state.loads++;
 
-  const transitions = resolveTransitions(episode.scenes);
+  state.idx = Object.fromEntries(episode.scenes.map((sc, k) => [sc.id, k]));
+  const transitions = resolveTransitions(episode.scenes, { loop: !!episode.loop });
+  // com teaser, a primeira cena entra com chicote vindo dele
+  if (episode.teaser) transitions[0] = 'whip';
+  const N = episode.scenes.length, bdir = (k) => (k % 2 ? -1 : 1);
   state.scenes = episode.scenes.map((cfg, si) => {
     const envName = cfg.environment ?? 'bancada';
     if (!state.envs.has(envName)) {
@@ -105,7 +111,9 @@ function load(episode, timeline) {
       group.add(built.root);
     }
     scene.add(group);
-    const built = { cfg, group, objects, env: envName, trIn: transitions[si], trOut: transitions[si + 1] ?? 'cut' };
+    // em loop, a saída da última cena é um chicote que emenda com a entrada da primeira
+    const built = { cfg, group, objects, env: envName, trIn: transitions[si], trOut: transitions[si + 1] ?? (episode.loop ? 'whip' : 'cut'),
+      dirIn: bdir(si === 0 && episode.loop ? N : si), dirOut: bdir(si + 1) };
     built.focus = focusOf(cfg, built);
     built.hasFocus = !!(cfg.focus ?? cfg.objects?.length);
     if (tgt && objects[tgt.obj]) {
@@ -137,10 +145,18 @@ function sceneAt(t) {
 
 /** Posiciona tudo no tempo t. Puro em relação a t: nada depende do quadro anterior. */
 function updateWorld(t) {
-  const i = sceneAt(t), entry = state.timeline.scenes[i], sc = state.scenes[i];
-  const lt = Math.max(0, t - entry.start), dur = entry.end - entry.start;
+  // i = trecho da linha do tempo; si = cena do roteiro (o teaser reaproveita uma cena futura)
+  const i = sceneAt(t), entry = state.timeline.scenes[i];
+  const si = entry.teaser ? entry.ref : state.idx[entry.id], sc = state.scenes[si];
+  const real = entry.teaser ? state.timeline.scenes.find((e) => e.id === sc.cfg.id) : entry;
+  const lt = entry.teaser ? entry.offset + (t - entry.start) : Math.max(0, t - entry.start);
+  const dur = real.end - real.start;
+  const ep = state.episode, last = state.scenes[state.scenes.length - 1];
+  const tr = entry.teaser
+    ? { trIn: ep.loop ? 'whip' : 'cut', trOut: 'whip', dirIn: last.dirOut, dirOut: 1, tIn: entry.start, tOut: entry.end }
+    : { trIn: sc.trIn, trOut: sc.trOut, dirIn: si === 0 && ep.teaser ? 1 : sc.dirIn, dirOut: sc.dirOut };
   if (i !== state.current) {
-    state.scenes.forEach((s, j) => { s.group.visible = j === i; });
+    state.scenes.forEach((s, j) => { s.group.visible = j === si; });
     for (const [name, env] of state.envs) env.group.visible = name === sc.env;
     const env = state.envs.get(sc.env);
     scene.background = new THREE.Color(env.background);
@@ -158,12 +174,16 @@ function updateWorld(t) {
     const S = sc.shots; let k = 0;
     while (k + 1 < S.length && t >= S[k + 1].at) k++;
     const sh = S[k], end = S[k + 1]?.at ?? dur;
-    const cfgShot = { move: sh.move, tone: sc.cfg.tone, index: i * 7 + k, anim: k === 0 ? ncfg.anim : null,
-      trIn: k === 0 ? sc.trIn : 'cut', trOut: k === S.length - 1 ? sc.trOut : 'cut' };
+    const cfgShot = { move: sh.move, tone: sc.cfg.tone, index: si * 7 + k, anim: k === 0 ? ncfg.anim : null,
+      trIn: k === 0 ? tr.trIn : 'cut', trOut: k === S.length - 1 ? tr.trOut : 'cut', dirIn: tr.dirIn, dirOut: tr.dirOut,
+      punches: entry.teaser ? [] : (entry.emphasis ?? []).map((x) => x - entry.start - sh.at) };
     return { sh, k, slt: t - sh.at, sdur: end - sh.at, cfgShot };
   };
   const A = shotAt(lt);
-  let shot = cameraShot(A.sh.camera, A.slt, A.sdur, nPos, A.sh.focusV, A.cfgShot);
+  let shot = entry.teaser
+    // teaser: câmera da cena no instante 'offset', com saída em chicote no fim do trecho
+    ? cameraShot(A.sh.camera, t - entry.start, entry.end - entry.start, nPos, A.sh.focusV, { ...A.cfgShot, anim: null })
+    : cameraShot(A.sh.camera, A.slt, A.sdur, nPos, A.sh.focusV, A.cfgShot);
   if (A.sh.blend && A.k > 0 && A.slt < 0.8) {
     // mistura suave a partir do fim do plano anterior, em vez de corte
     const P = sc.shots[A.k - 1], pd = A.sh.at - P.at;
@@ -174,18 +194,19 @@ function updateWorld(t) {
   }
   applyShot(camera, shot);
   nibble.root.visible = ncfg.visible !== false;
-  if (!sc.speech) sc.speech = makeSpeech(entry);
+  if (!sc.speech) sc.speech = makeSpeech(real);
+  const silent = { mouth: () => 0, speaking: () => false };
   nibble.update(lt, dur, ncfg, {
-    key: `${state.loads}:${i}`,
+    key: `${state.loads}:${entry.teaser ? 't' : ''}${si}`,
     seed: 1 + i * 3.17 + (state.episode.episode_id.length % 7),
     camAt: (t) => { const B = shotAt(t); return cameraPose(B.sh.camera, B.slt, B.sdur, nPos, B.sh.focusV, B.cfgShot).pos; },
     reach: sc.reach ?? null,
     focus: sc.hasFocus ? sc.focus.toArray() : null,
-    mouth: sc.speech.mouth,
-    speaking: sc.speech.speaking,
+    mouth: (entry.teaser ? silent : sc.speech).mouth,
+    speaking: (entry.teaser ? silent : sc.speech).speaking,
   });
   for (const o of Object.values(sc.objects)) o.update(lt);
-  return { i, entry, sc, lt };
+  return { i, si, entry, sc, lt };
 }
 
 function project(anchor, sc) {
@@ -206,7 +227,7 @@ function project(anchor, sc) {
 function renderAtTime(t) {
   const { entry, sc, lt } = updateWorld(t);
   pipeline.renderer.toneMappingExposure = pipeline.baseExposure * (camera.userData.exposure ?? 1);
-  hud.update({ t, lt, total: state.timeline.total_duration, scene: sc.cfg, entry, project: (a) => project(a, sc) });
+  hud.update({ t, lt, total: state.timeline.total_duration, scene: entry.teaser ? NO_SCENE : sc.cfg, entry, project: (a) => project(a, sc), hook: state.episode.hook });
   pipeline.render(t, updateWorld);
 }
 
@@ -233,7 +254,7 @@ async function boot() {
     get duration() { return state.timeline?.total_duration ?? 0; },
     /** Posições de mundo de tudo que se move, sem renderizar. Usado pelo verificador de fluidez. */
     probe(t) {
-      const { i } = updateWorld(t);
+      const { i, sc } = updateWorld(t);
       scene.updateMatrixWorld(true);
       const w = (o) => o.getWorldPosition(new THREE.Vector3()).toArray();
       // rotação da câmera entra como dois pontos presos a ela (2 m à frente, 1 m acima)
@@ -247,7 +268,6 @@ async function boot() {
         nibble.legs.forEach((l, k) => { out[`foot${k}`] = w(l.foot); });
         out.ear = w(nibble.ears[1].children[0]);
       }
-      const sc = state.scenes[i];
       for (const [id, o] of Object.entries(sc.objects)) out[`obj:${id}`] = w(o.root);
       // primeiras partículas de cada emissor (cena e cenário)
       const m4 = new THREE.Matrix4(), p = new THREE.Vector3();

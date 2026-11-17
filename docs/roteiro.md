@@ -5,16 +5,56 @@ A saída é **um único objeto JSON** salvo em `episodes/<episode_id>/script.jso
 
 ## O canal
 
-Vídeos verticais 9:16 de 45 a 75 s que respondem "o que acontece de verdade quando você…", descendo
-camada por camada até o hardware. Apresentador: **Nibble**, um tatu-bola.
+**Camada Zero**: vídeos verticais 9:16 de **25 a 40 s** que respondem "o que acontece de verdade quando você…",
+descendo camada por camada até o hardware. Quem apresenta é o **Nibble**, um tatu-bola.
 
 Regras editoriais:
 
 - Toda afirmação técnica precisa ser verdadeira. Simplificar pode; inventar não. Na dúvida, corte a frase.
-- Segunda pessoa, frases curtas, tom de conversa. Sem siglas não explicadas.
 - Uma ideia por cena. Estrutura: gancho → 3 ou 4 camadas → fechamento que volta ao gancho.
-- `||` marca uma pausa dramática (~0,35 s) dentro da narração.
 - `hud_text`: até 5 palavras e 24 caracteres. `layer`: "camada N · nome" (a numeração desce ao longo do vídeo).
+
+## Escrever como gente
+
+O texto vai ser falado por uma voz sintética, e o público de vídeo curto reconhece texto de IA em
+duas frases. O que mais denuncia não é a voz, é o roteiro. Então:
+
+- **Fale como fala.** "pra", "tá", "aí", "a gente". Frase curta. Nada de "dessa forma", "através de", "realiza".
+- **Número no lugar de adjetivo.** "mil vezes por segundo" em vez de "extremamente rápido";
+  "menos que uma piscada" em vez de "em frações de segundo".
+- **Uma imagem concreta por cena**, de coisa que a pessoa já viu: a letra na tela, o cabo, a tecla afundando.
+- **Proibido** (o `make retention` acusa): "imagine", "você sabia", "neste vídeo", "hoje vamos", "vamos explorar",
+  "mergulhar", "fascinante", "incrível", "desvendar", "jornada", "no mundo de hoje", "em resumo", "crucial",
+  "fundamental", "essencial", "a magia de", "não é apenas… é", "por trás das cenas", "basicamente".
+- **Sem lista de três** ("rápido, eficiente e seguro"). É o tique mais reconhecível de texto gerado.
+- **Sem travessão** pra emendar frase. Ponto final resolve.
+- **Pode ter graça**, desde que seja verdade: "e o teclado? Continua quieto, esperando o PC perguntar".
+- **Siglas**: só as que todo mundo usa (PC, USB, TV). O resto vira palavra ("o processador", não "CPU").
+
+## Retenção
+
+Ninguém garante uma porcentagem de retenção: ela depende do tema, da thumbnail, da voz e de pra quem o
+algoritmo mostra. O que dá pra garantir é que o vídeo não tenha nenhum dos motivos clássicos de abandono.
+`make retention EP=...` dá uma nota de 0 a 100 e diz o que corrigir primeiro. Mire em 85 ou mais.
+
+- **Primeira frase com até 9 palavras**, abrindo uma pergunta, uma contradição ou um número.
+  "Seu teclado nunca avisa que você apertou." é melhor que "Hoje vamos ver como funciona o teclado."
+- **A voz entra de cara** (até 0,35 s), ou até 1 s se tiver título de gancho na tela.
+- **`hook`** no episódio: título grande nos primeiros ~2,5 s, até 7 palavras, `*trecho*` em âmbar.
+  Metade das pessoas assiste sem som; é o título que segura essas.
+- **`teaser`** no episódio: `{ "scene": "sc05_cpu", "at": 1.3, "dur": 0.8 }` abre o vídeo com um relance
+  de 0,8 s de uma cena futura (sem voz, com o título por cima) e entra no gancho com chicote.
+  O primeiro quadro já está em movimento.
+- **Algo novo na tela a cada ~3 s**: ênfase, `shots`, `overlays`, `labels`, `keys`, `appear_at`, ação do Nibble.
+  O avaliador aponta os trechos parados com o horário.
+- **Ênfase** (`*palavra*`): vira legenda própria, a lente fecha um pouco e soa um impacto grave.
+  Uma ou duas por cena; mais que três vira barulho.
+- **25 a 40 s.** Passou disso, corte uma ideia inteira, não acelere a fala.
+- **Feche respondendo o gancho** (cena `payoff`) e **emende no começo**: `"loop": true` faz a última cena
+  sair em chicote e a última frase deve levar de volta à primeira. Quem não percebe o corte assiste de novo.
+- **Sem "se inscreve" no fim.** Entrega que acabou e quebra o loop.
+- **Pausas**: `||` vira um respiro do tamanho que a pontuação pede (vírgula curta, ponto médio,
+  pergunta mais longa). Não use pra drama em toda frase.
 
 ## Enquadramento
 
@@ -36,6 +76,7 @@ Regras editoriais:
 | `nibble.anim` | ver tabela abaixo |
 | `nibble.look` | opcional: `camera` ou `focus` fixa o olhar a cena toda |
 | `camera_move` | opcional: `push`, `pull`, `orbit`, `crane`, `drift`, `static` (padrão `auto`, escolhe pelo `tone`) |
+| `voice` | opcional, ajuste da voz na cena: `{ "speed": 0.95, "stability": 0.5 }` (padrão: gancho 1,05, payoff 0,95) |
 | `transition` | opcional, transição de entrada da cena: `whip`, `dive`, `rise`, `cut` (padrão `auto`: `whip` no mesmo cenário, `dive`/`rise` ao descer/subir de camada). Para `auto` funcionar, use `layer` como "camada N · nome". |
 
 ### Animações do Nibble
@@ -95,12 +136,14 @@ Comuns a todos: `id`, `pos`, `rot`, `scale`, `float` (flutua e gira devagar), `a
 
 ### Ênfase e sobreposições
 
-- `*palavra*` na narração: a palavra fica destacada na legenda (os asteriscos não vão para a voz).
+- `*palavra*` ou `*várias palavras*` na narração: legenda própria em âmbar, pancada de lente e som de impacto
+  (os asteriscos não vão para a voz). Ver Retenção.
 - `overlays[]` na cena:
   - `{ "type": "counter", "at": 6.2, "dur": 0.9, "from": 0, "to": 4, "format": "hex", "digits": 2, "label": "código da tecla A", "pos": [0.5, 0.27] }`
     (`format`: `dec`, `hex`, `bin`; `pos` em fração da tela)
   - `{ "type": "code", "at": 1.0, "text": "if (tecla) {\n  envia(0x04);\n}", "char_time": 0.035, "pos": [0.5, 0.3] }`
   Não ponha sobreposição e etiqueta no mesmo lugar: a sobreposição substitui a etiqueta.
+  `until` (segundos na cena) tira a sobreposição antes do fim da cena, pra dar lugar à próxima. Vale para `labels` também.
 
 ### Etiquetas (`labels[]`)
 
@@ -113,6 +156,9 @@ Comuns a todos: `id`, `pos`, `rot`, `scale`, `float` (flutua e gira devagar), `a
 {
   "episode_id": "ep02_exemplo",
   "title": "Título curto",
+  "hook": { "text": "Sua RAM *esquece* tudo", "until": 2.6 },
+  "teaser": { "scene": "sc04_vazamento", "at": 1.0, "dur": 0.8 },
+  "loop": true,
   "outfit": "esd",
   "scenes": [
     {
@@ -120,13 +166,16 @@ Comuns a todos: `id`, `pos`, `rot`, `scale`, `float` (flutua e gira devagar), `a
       "tone": "hook",
       "environment": "bancada",
       "layer": "camada 4 · você",
-      "narration": "Frase de impacto. || Continuação depois da pausa.",
+      "narration": "Frase curta que abre uma pergunta. || Continuação depois do respiro?",
       "hud_text": "Até cinco palavras",
-      "camera": "hero",
-      "nibble": { "pos": [-0.45, 0, 0.7], "rotY": 0.3, "anim": "roll_in" },
+      "camera": "closeup",
+      "shots": [{ "at": 3.0, "camera": "face", "blend": true }],
+      "nibble": { "pos": [-0.45, 0, 0.7], "rotY": 0.5, "anim": "talk", "mood": "confused" },
       "labels": [{ "text": "PEÇA", "anchor": { "obj": "peca", "local": [0, 0.1, 0] }, "side": "right", "at": 1.5 }],
       "objects": [{ "id": "peca", "type": "cpu", "pos": [0.2, 1.6, 0], "rot": [1.05, -0.25, 0], "float": true }]
     }
   ]
 }
 ```
+
+Antes de renderizar: `make validate EP=...` (o roteiro está certo) e `make retention EP=...` (o roteiro segura).

@@ -17,6 +17,8 @@ const SOUNDS = {
   boom: { src: "aevalsrc='0.95*exp(-t*5)*sin(2*PI*(70-30*t)*t)+0.25*exp(-t*14)*(random(0)*2-1)':d=1.2", af: 'lowpass=f=900' },
   // subida de camada: tom descendo
   fall: { src: "aevalsrc='0.45*pow(1-t/0.7,1.5)*sin(2*PI*(1100*t-500*t*t))':d=0.7", af: 'highpass=f=150' },
+  // pancada de ênfase: grave curto + estalo
+  hit: { src: "aevalsrc='0.8*exp(-t*28)*sin(2*PI*(95-50*t)*t)+0.35*exp(-t*120)*(random(0)*2-1)':d=0.25", af: 'lowpass=f=2500' },
   // pulo / pop
   pop: { src: "aevalsrc='0.8*exp(-t*16)*sin(2*PI*(720-900*t)*t)':d=0.3", af: 'highpass=f=200' },
   // pouso: baque curto
@@ -50,9 +52,12 @@ export function ensureSfx(dir) {
 export function sfxEvents(episode, timeline) {
   const ev = [], beds = [];
   const add = (sound, t, gain = 0) => { if (t >= 0) ev.push({ sound, t, gain }); };
-  const trs = resolveTransitions(episode.scenes);
-  timeline.scenes.forEach((ts, i) => {
-    const sc = episode.scenes[i], at = (x) => ts.start + x;
+  const trs = resolveTransitions(episode.scenes, { loop: !!episode.loop });
+  const byId = Object.fromEntries(episode.scenes.map((sc, k) => [sc.id, k]));
+  timeline.scenes.forEach((ts) => {
+    if (ts.teaser) { add('whoosh', ts.end - 0.38, -4); beds.push({ sound: `amb_${episode.scenes[ts.ref].environment ?? 'bancada'}`, start: ts.start, end: ts.end }); return; }
+    const i = byId[ts.id], sc = episode.scenes[i], at = (x) => ts.start + x;
+    for (const e of ts.emphasis ?? []) add('hit', e, -11);
     beds.push({ sound: `amb_${sc.environment ?? 'bancada'}`, start: ts.start, end: ts.end });
     // transições (entrada desta cena)
     if (i > 0) {
@@ -67,10 +72,17 @@ export function sfxEvents(episode, timeline) {
     if (anim === 'celebrate') for (const h of [0.22, 0.78, 1.34]) { add('pop', at(h), -7); add('thud', at(h + 0.36), -12); }
     // objetos
     for (const o of sc.objects ?? []) {
-      if (o.type === 'key') { const p = o.press_at ?? 1.0; add('click', at(p), -3); add('click', at(p + (o.hold ?? 0.9)), -9); }
+      if (o.type === 'key') {
+        // se o Nibble aperta a tecla (anim press), o tempo vem do alvo dele, igual ao motor
+        const tg = o.press_at === undefined && sc.nibble?.anim === 'press' && sc.nibble?.target?.obj === o.id ? sc.nibble.target : null;
+        const p = tg ? tg.at + 0.04 : o.press_at ?? 1.0, hold = tg ? tg.hold ?? 0.5 : o.hold ?? 0.9;
+        add('click', at(p), -3); add('click', at(p + hold), -9);
+      }
       if (o.type === 'particles' && (o.kind ?? 'sparks') === 'sparks') add('crackle', at(o.start_at ?? 0), -8);
       if (o.type === 'screen') { const n = (o.text ?? 'A').length; for (let k = 0; k < n; k++) add('tick', at((o.type_at ?? 1) + k * (o.char_time ?? 0.12)), -10); }
     }
   });
+  // loop: chicote na emenda do fim com o começo
+  if (episode.loop) add('whoosh', timeline.total_duration - 0.38, -4);
   return { events: ev.sort((a, b) => a.t - b.t), beds };
 }

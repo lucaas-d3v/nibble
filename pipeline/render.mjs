@@ -42,8 +42,9 @@ const { timeline } = timelineFor(dir, episode, fps);
 let from = Number(args.from ?? 0), to = Number(args.to ?? timeline.total_duration);
 if (args.scene) {
   // com --scene, --from/--to contam a partir do início da cena
-  const s = timeline.scenes[Number(args.scene) - 1];
-  if (!s) throw new Error(`cena ${args.scene} não existe (1..${timeline.scenes.length})`);
+  // --scene conta as cenas do roteiro (o teaser de abertura não entra na contagem)
+  const s = timeline.scenes.filter((x) => !x.teaser)[Number(args.scene) - 1];
+  if (!s) throw new Error(`cena ${args.scene} não existe (1..${timeline.scenes.filter((x) => !x.teaser).length})`);
   from = s.start + Number(args.from ?? 0);
   to = Math.min(s.end, s.start + Number(args.to ?? s.end - s.start));
 }
@@ -90,10 +91,11 @@ try {
 
   if (stills) {
     const sdir = join(outDir, 'stills'); mkdirSync(sdir, { recursive: true });
-    const list = args.scene ? [timeline.scenes[Number(args.scene) - 1]] : timeline.scenes;
+    const list = args.scene ? [timeline.scenes.filter((x) => !x.teaser)[Number(args.scene) - 1]] : timeline.scenes;
     // --at t: um quadro só, no tempo t (segundos desde o início da cena se --scene, senão do episódio)
     const times = args.at !== undefined
-      ? [{ s: list[0], t: (args.scene ? list[0].start : 0) + Number(args.at) }]
+      ? [(() => { const t = (args.scene ? list[0].start : 0) + Number(args.at);
+          return { s: timeline.scenes.find((x) => t >= x.start && t < x.end) ?? list[0], t }; })()]
       : list.flatMap((s) => [0.2, 0.55, 0.9].map((k) => ({ s, t: s.start + (s.end - s.start) * k })));
     if (thumb) {
       await page.evaluate((title) => {

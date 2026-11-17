@@ -47,6 +47,17 @@ Ordem por impacto no vídeo final. ✅ feito · 🔶 parcial · ⬜ a fazer · �
 | 22 | Legenda `.srt` | ✅ |
 | 23 | Versão 16:9 para vídeo longo | ✅ `--aspect 16:9` (enquadramento é o mesmo; composição própria para o horizontal ainda é manual) |
 
+## Retenção e texto
+| | Item | Estado |
+|---|---|---|
+| 25 | Avaliador de retenção (`make retention`): gancho, novidade a cada ~3 s, duração, loop, clichês de IA | ✅ heurístico; não prevê a retenção real |
+| 26 | Título de gancho, teaser de abertura, loop, ênfase com pancada de lente e som, legenda por frase | ✅ |
+| 27 | Guia "escrever como gente" no `docs/roteiro.md`; voz menos robótica (estabilidade, velocidade por tom, pausa pela pontuação) | ✅ |
+| 28 | `ep01_tecla` reescrito: 54 → 96 pontos, 55 → ~40 s | ✅ |
+| 29 | Calibrar a nota com a curva de retenção real dos primeiros vídeos (exportar do YouTube Studio e comparar com os trechos apontados) | 🖥️ depois de publicar |
+| 30 | Ritmo da fala e duração medidos com o áudio real | 🖥️ depois do `make voice` |
+| 31 | Pulos do `celebrate` e o susto do `shock` aparecem no verificador a 30 fps (impacto de pouso, intencional) | 🔶 a 60 fps somem |
+
 ## Segurança
 | | Item | Estado |
 |---|---|---|

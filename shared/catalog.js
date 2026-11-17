@@ -17,7 +17,7 @@ export const PARTICLE_KINDS = ['sparks', 'flow', 'dust'];
 
 export const LIMITS = {
   xMin: -0.9, xMax: 0.9,        // faixa segura horizontal em 9:16
-  durMin: 40, durMax: 80,       // segundos
+  durMin: 20, durMax: 60,       // segundos (vídeo curto; o ideal pra retenção é 25–40, ver retention.mjs)
   hudWordsMax: 5,
   hudCharsMax: 24,              // acima disso a pílula encosta na borda
   sceneWordsMax: 38,

@@ -13,6 +13,9 @@ export function validate(ep) {
   if (!ep.title) err('episódio', 'falta title');
   oneOf('episódio', 'outfit', ep.outfit, OUTFITS);
   if (!Array.isArray(ep.scenes) || !ep.scenes.length) { err('episódio', 'sem cenas'); return { errors, warns }; }
+  if (ep.teaser && !ep.scenes.some((s) => s.id === ep.teaser.scene)) err('episódio', `teaser.scene "${ep.teaser.scene}" não é uma cena`);
+  const hook = typeof ep.hook === 'string' ? ep.hook : ep.hook?.text;
+  if (hook && hook.replace(/\*/g, '').split(/\s+/).length > 7) warns.push('hook com mais de 7 palavras: no celular ninguém lê');
 
   const ids = new Set();
   for (const s of ep.scenes) {

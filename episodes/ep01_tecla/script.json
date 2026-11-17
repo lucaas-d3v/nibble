@@ -1,6 +1,17 @@
 {
   "episode_id": "ep01_tecla",
   "title": "O que acontece quando você aperta uma tecla",
+  "thumb_title": "Seu teclado *não avisa* nada",
+  "hook": {
+    "text": "Seu teclado *não avisa* nada",
+    "until": 2.8
+  },
+  "teaser": {
+    "scene": "sc05_cpu",
+    "at": 1.3,
+    "dur": 0.8
+  },
+  "loop": true,
   "outfit": "esd",
   "scenes": [
     {
@@ -8,47 +19,58 @@
       "tone": "hook",
       "environment": "bancada",
       "layer": "camada 5 · você",
-      "narration": "Você aperta a letra A e ela aparece na tela. || Parece instantâneo. Mas nesse meio tempo, cinco coisas aconteceram.",
-      "hud_text": "Uma tecla, cinco etapas",
-      "camera": "hero",
+      "narration": "Seu teclado *nunca* avisa que você apertou. || Então como o A chega na tela?",
+      "hud_text": "Quem avisa quem?",
+      "camera": "closeup",
+      "shots": [
+        {
+          "at": 3.3,
+          "camera": "face",
+          "blend": true
+        }
+      ],
       "nibble": {
         "pos": [
-          -0.42,
+          -0.3,
           0,
           0.6
         ],
-        "rotY": 0.3,
-        "anim": "roll_in"
+        "rotY": 0.6,
+        "anim": "press",
+        "mood": "confused",
+        "target": {
+          "obj": "tecla",
+          "at": 2.6,
+          "hold": 0.5
+        }
       },
       "objects": [
         {
           "id": "tecla",
           "type": "key",
           "pos": [
-            0.38,
-            1.25,
-            0
+            0.0,
+            0,
+            0.8
           ],
           "rot": [
-            0.5,
-            -0.45,
+            0,
+            -0.3,
             0
           ],
-          "scale": 1.05,
-          "float": true,
-          "press_at": 1.6,
-          "hold": 0.6,
+          "scale": 0.45,
           "label": "A"
         }
-      ]
+      ],
+      "camera_move": "pull"
     },
     {
       "id": "sc02_contato",
       "tone": "explain",
       "environment": "bancada",
       "layer": "camada 4 · o interruptor",
-      "narration": "Embaixo da tecla tem um interruptor. || Quando você aperta, duas lâminas de metal se encostam e fecham um circuito.",
-      "hud_text": "Dois metais se tocam",
+      "narration": "Começa embaixo da tecla: || duas lâminas de metal se *encostam*.",
+      "hud_text": "Metal com metal",
       "camera": "hero",
       "nibble": {
         "pos": [
@@ -61,7 +83,7 @@
       },
       "labels": [
         {
-          "text": "CONTATO FECHADO",
+          "text": "CIRCUITO FECHADO",
           "anchor": {
             "obj": "corte",
             "local": [
@@ -71,7 +93,7 @@
             ]
           },
           "side": "left",
-          "at": 3.4,
+          "at": 3.5,
           "lift": 0.1
         }
       ],
@@ -91,8 +113,8 @@
           ],
           "scale": 1.25,
           "cutaway": true,
-          "press_at": 2.9,
-          "hold": 4.5,
+          "press_at": 3.0,
+          "hold": 3.5,
           "label": "A"
         },
         {
@@ -105,7 +127,7 @@
             0.15
           ],
           "count": 90,
-          "start_at": 3.05,
+          "start_at": 3.15,
           "speed": 1.6,
           "spread": 0.9,
           "floor": -0.4,
@@ -118,9 +140,17 @@
       "tone": "explain",
       "environment": "chip",
       "layer": "camada 3 · o teclado",
-      "narration": "Só que o teclado não tem um fio pra cada tecla. || Um chipzinho varre linhas e colunas, milhares de vezes por segundo, até achar o cruzamento que fechou.",
+      "narration": "Um chip varre linhas e colunas || até achar o cruzamento fechado: || *linha dois, coluna três*.",
       "hud_text": "Linha × coluna",
       "camera": "hero",
+      "shots": [
+        {
+          "at": 2.3,
+          "camera": "prop",
+          "focus": "matriz",
+          "blend": true
+        }
+      ],
       "nibble": {
         "pos": [
           -0.52,
@@ -132,7 +162,7 @@
       },
       "labels": [
         {
-          "text": "ACHOU: L2 × C3",
+          "text": "L2 × C3",
           "anchor": {
             "obj": "matriz",
             "local": [
@@ -142,7 +172,7 @@
             ]
           },
           "side": "right",
-          "at": 3.2,
+          "at": 4.5,
           "lift": 0.09
         }
       ],
@@ -167,8 +197,8 @@
             1,
             2
           ],
-          "hit_at": 2.6,
-          "scan_period": 0.9
+          "hit_at": 3.4,
+          "scan_period": 0.6
         },
         {
           "id": "mcu",
@@ -185,7 +215,7 @@
           ],
           "scale": 0.6,
           "label": "MCU",
-          "on_at": 2.6
+          "on_at": 0.6
         }
       ]
     },
@@ -194,9 +224,17 @@
       "tone": "explain",
       "environment": "chip",
       "layer": "camada 2 · o cabo",
-      "narration": "Aí o teclado espera. || É o computador que pergunta, até *mil* vezes por segundo: tem novidade? || E a resposta desce pelo cabo como um *número*.",
-      "hud_text": "O PC pergunta primeiro",
+      "narration": "Aí ele *espera*. || O PC é que pergunta, mil vezes por segundo: tem novidade? || Tem: o A vira o número *quatro*.",
+      "hud_text": "O PC pergunta",
       "camera": "hero",
+      "shots": [
+        {
+          "at": 6.3,
+          "camera": "prop",
+          "focus": "bits",
+          "blend": true
+        }
+      ],
       "nibble": {
         "pos": [
           -0.5,
@@ -227,8 +265,8 @@
           ],
           "sag": 0.35,
           "pulses": 4,
-          "speed": 0.55,
-          "start_at": 4.2,
+          "speed": 0.9,
+          "start_at": 1.8,
           "radius": 0.04,
           "scale": 1.15
         },
@@ -247,24 +285,54 @@
           ],
           "scale": 1.0,
           "pattern": "00000100",
-          "start_at": 5.0,
-          "appear_at": 4.6
+          "start_at": 7.0,
+          "appear_at": 6.3
         }
       ],
       "overlays": [
         {
           "type": "counter",
-          "at": 6.2,
-          "dur": 0.9,
+          "at": 3.2,
+          "dur": 1.2,
+          "from": 0,
+          "to": 1000,
+          "format": "dec",
+          "label": "perguntas por segundo",
+          "pos": [
+            0.5,
+            0.27
+          ],
+          "until": 4.8
+        },
+        {
+          "type": "counter",
+          "at": 8.0,
+          "dur": 0.6,
           "from": 0,
           "to": 4,
           "format": "hex",
           "digits": 2,
-          "label": "código da tecla A",
           "pos": [
             0.5,
             0.27
           ]
+        }
+      ],
+      "labels": [
+        {
+          "text": "TEM NOVIDADE?",
+          "anchor": {
+            "obj": "cabo",
+            "local": [
+              0.35,
+              0.0,
+              0
+            ]
+          },
+          "side": "right",
+          "at": 4.9,
+          "lift": 0.1,
+          "until": 6.2
         }
       ]
     },
@@ -273,8 +341,8 @@
       "tone": "explain",
       "environment": "chip",
       "layer": "camada 1 · o processador",
-      "narration": "Esse número gera uma interrupção. || O processador larga o que estava fazendo, e o sistema operacional traduz o código: tecla A.",
-      "hud_text": "Para tudo: interrupção",
+      "narration": "O processador *larga tudo*, || e o sistema traduz o quatro de volta pra A.",
+      "hud_text": "Interrupção",
       "camera": "hero",
       "nibble": {
         "pos": [
@@ -287,7 +355,7 @@
       },
       "labels": [
         {
-          "text": "SILÍCIO",
+          "text": "0x04 → A",
           "anchor": {
             "obj": "proc",
             "local": [
@@ -297,7 +365,7 @@
             ]
           },
           "side": "right",
-          "at": 2.2,
+          "at": 3.7,
           "lift": 0.09
         }
       ],
@@ -318,7 +386,7 @@
           "scale": 1.1,
           "float": true,
           "cutaway": true,
-          "open_at": 0.9
+          "open_at": 1.1
         },
         {
           "id": "poeira",
@@ -344,13 +412,21 @@
       "tone": "payoff",
       "environment": "bancada",
       "layer": "camada 5 · de volta",
-      "narration": "Só então o programa recebe a letra e desenha ela na tela. || Tudo isso em *poucos milissegundos*. || Toda vez que você digita.",
+      "narration": "A letra aparece em *menos que uma piscada*. || E o teclado? Continua quieto, esperando o PC perguntar.",
       "hud_text": "E a letra aparece",
       "camera": "hero",
       "focus": [
         0,
         1.6,
         0
+      ],
+      "shots": [
+        {
+          "at": 3.1,
+          "camera": "macro",
+          "focus": "tecla",
+          "blend": true
+        }
       ],
       "nibble": {
         "pos": [
@@ -359,7 +435,8 @@
           0.75
         ],
         "rotY": 0.3,
-        "anim": "celebrate"
+        "anim": "celebrate",
+        "mood": "happy"
       },
       "objects": [
         {
@@ -379,7 +456,39 @@
           "float": true,
           "float_swing": 0.08,
           "text": "A",
-          "type_at": 1.4
+          "type_at": 0.4
+        },
+        {
+          "id": "tecla",
+          "type": "key",
+          "pos": [
+            0.3,
+            0,
+            0.95
+          ],
+          "rot": [
+            0,
+            -0.3,
+            0
+          ],
+          "scale": 0.45,
+          "label": "A"
+        }
+      ],
+      "labels": [
+        {
+          "text": "TEM NOVIDADE?",
+          "anchor": {
+            "obj": "tecla",
+            "local": [
+              0,
+              0.06,
+              0
+            ]
+          },
+          "side": "right",
+          "at": 5.0,
+          "lift": 0.12
         }
       ]
     }

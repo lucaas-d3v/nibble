@@ -28,3 +28,7 @@
 .cz-ov-counter span { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 9cqmin; color: #ffb020; letter-spacing: 0.02em; }
 .cz-ov-code { white-space: pre; font-family: "JetBrains Mono", monospace; font-size: 3.3cqmin; line-height: 1.45; color: #d8e1ec;
   padding: 1.4cqh 3.6cqmin; border-radius: 2cqmin; background: rgba(5, 8, 12, 0.86); border: 0.25cqmin solid rgba(56, 214, 255, 0.6); min-width: 50cqmin; }
+.cz-hook { position: absolute; left: 6%; right: 6%; top: 8cqh; text-align: center; font-weight: 700; font-size: 9.4cqmin;
+  line-height: 1.02; text-transform: uppercase; letter-spacing: -0.01em; -webkit-text-stroke: 1.4cqmin #05070b; paint-order: stroke fill;
+  text-shadow: 0 0.8cqmin 3cqmin rgba(0,0,0,0.6); }
+.cz-hook span { color: #ffb020; }

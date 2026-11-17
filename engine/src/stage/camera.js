@@ -78,10 +78,10 @@ export function cameraPose(preset, lt, dur, n, f, shot = {}) {
 }
 
 /** Resolve as transições de entrada de cada cena: auto vira dive/rise ao trocar de camada, whip no resto. */
-export function resolveTransitions(scenes) {
+export function resolveTransitions(scenes, { loop = false } = {}) {
   const layer = (sc) => { const m = /camada\s*(\d+)/i.exec(sc.layer ?? ''); return m ? Number(m[1]) : null; };
   return scenes.map((sc, i) => {
-    if (i === 0) return 'cut';
+    if (i === 0) return loop ? 'whip' : 'cut';
     const want = sc.transition ?? 'auto';
     if (want !== 'auto') return want;
     const prev = scenes[i - 1];
@@ -116,6 +116,15 @@ export function cameraShot(preset, lt, dur, n, f, shot = {}) {
     }
   }
 
+  // pancada de ênfase: em cada *palavra* a lente fecha um pouco e solta (padrão de corte de vídeo curto)
+  for (const p of shot.punches ?? []) {
+    const u = lt - p;
+    if (u <= 0 || u > 1.2) continue;
+    // entra em 80 ms e solta numa gaussiana: as duas pontas com velocidade zero, sem tranco
+    const env = u < 0.08 ? (u / 0.08) ** 2 * (3 - 2 * u / 0.08) : Math.exp(-(((u - 0.08) / 0.42) ** 2));
+    fov -= 2.4 * env;
+  }
+
   // câmera na mão (rotação pequena: lê como operador, não como terremoto)
   yaw += 0.0035 * energy * wobble(lt * 0.9, seed);
   pitch += 0.0028 * energy * wobble(lt * 0.8, seed + 4.1);
@@ -126,13 +135,16 @@ export function cameraShot(preset, lt, dur, n, f, shot = {}) {
   // transições
   const right = new THREE.Vector3().subVectors(new THREE.Vector3(...tgt), new THREE.Vector3(...pos)).cross(new THREE.Vector3(0, 1, 0)).normalize();
   const fwd = new THREE.Vector3(...tgt).sub(new THREE.Vector3(...pos)).normalize();
-  const dir = (shot.index ?? 0) % 2 ? -1 : 1;
+  // direção do chicote é da fronteira, não da cena: quem sai e quem entra giram para o mesmo lado
+  const dirIn = shot.dirIn ?? 1, dirOut = shot.dirOut ?? 1;
   const apply = (kind, u, entering) => {
+    const dir = entering ? dirIn : dirOut;
     // u: 0 longe do corte -> 1 no corte (saída) ; 1 no corte -> 0 assentado (entrada)
     if (kind === 'whip') {
       // giro rápido: sai girando para um lado, a próxima cena entra vindo do lado oposto
       // giro de ~24°: o borrão vem da velocidade; girar mais olha para fora do cenário (quadro preto)
       const sgn = entering ? -dir : dir;
+      // (entrando: começa deslocada para -dir e volta a 0; saindo: vai para +dir. Mesmo sentido no corte.)
       yaw += sgn * 0.42 * u;
       roll -= sgn * 0.06 * u;
       pos[0] += right.x * 0.45 * u * sgn;

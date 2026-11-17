@@ -18,6 +18,10 @@ const schema = {
     episode_id: { type: 'string', pattern: '^ep\\d{2}_[a-z0-9_]+$', description: 'ex.: ep02_ram' },
     title: { type: 'string' },
     outfit: { enum: C.OUTFITS },
+    hook: { oneOf: [{ type: 'string' }, { type: 'object', required: ['text'], properties: { text: { type: 'string' }, until: { type: 'number' } } }], description: 'título grande no início; *trecho* em âmbar' },
+    teaser: { type: 'object', required: ['scene'], properties: { scene: { type: 'string' }, at: { type: 'number' }, dur: { type: 'number' } }, description: 'relance de uma cena futura antes do gancho' },
+    loop: { type: 'boolean', description: 'o fim emenda no começo com um chicote (rever sem perceber)' },
+    thumb_title: { type: 'string' },
     scenes: {
       type: 'array', minItems: 1,
       items: {
@@ -27,7 +31,8 @@ const schema = {
           tone: { enum: C.TONES },
           environment: { enum: C.ENVIRONMENTS },
           layer: { type: 'string', description: '"camada N · nome" (a transição auto usa o N)' },
-          narration: { type: 'string', description: '|| = pausa; *palavra* = ênfase na legenda' },
+          narration: { type: 'string', description: '|| = pausa (tamanho pela pontuação); *palavra* = ênfase: legenda própria, pancada de câmera e som' },
+          voice: { type: 'object', properties: { speed: { type: 'number', minimum: 0.7, maximum: 1.2 }, stability: { type: 'number' }, style: { type: 'number' } } },
           hud_text: { type: 'string', maxLength: C.LIMITS.hudCharsMax },
           camera: { enum: C.CAMERAS },
           camera_move: { enum: C.MOVES },

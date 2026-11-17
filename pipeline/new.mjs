@@ -14,11 +14,14 @@ const ep = {
   $schema: '../../schema/episode.schema.json',
   episode_id: id,
   title: args.title ?? 'Título do episódio',
+  hook: { text: 'Até sete palavras, *trecho* em âmbar', until: 2.6 },
+  teaser: { scene: 'sc02_explica', at: 1.0, dur: 0.8 },
+  loop: true,
   outfit: 'esd',
   scenes: [
-    { id: 'sc01_hook', tone: 'hook', environment: 'bancada', layer: 'camada 4 · você', narration: 'Frase de impacto. || A pergunta que o vídeo responde.', hud_text: 'Até cinco palavras', camera: 'hero', nibble: { pos: [-0.45, 0, 0.7], rotY: 0.5, anim: 'roll_in' }, objects: [{ id: 'peca', type: 'cpu', pos: [0.2, 1.6, 0], rot: [1.0, -0.25, 0], float: true }] },
+    { id: 'sc01_hook', tone: 'hook', environment: 'bancada', layer: 'camada 4 · você', narration: 'Até nove palavras que abrem uma pergunta. || E a pergunta, dita?', hud_text: 'Até cinco palavras', camera: 'hero', nibble: { pos: [-0.45, 0, 0.7], rotY: 0.5, anim: 'roll_in' }, objects: [{ id: 'peca', type: 'cpu', pos: [0.2, 1.6, 0], rot: [1.0, -0.25, 0], float: true }] },
     { id: 'sc02_explica', tone: 'explain', environment: 'chip', layer: 'camada 1 · por dentro', narration: 'O que acontece de verdade, numa ideia só. || Com uma palavra em *destaque*.', hud_text: 'Uma ideia por cena', camera: 'hero', nibble: { pos: [-0.5, 0, 0.75], rotY: 0.5, anim: 'point' }, objects: [{ id: 'peca', type: 'cpu', pos: [0.2, 1.7, 0], rot: [1.0, -0.25, 0], float: true, cutaway: true }] },
-    { id: 'sc03_fecha', tone: 'payoff', environment: 'bancada', layer: 'camada 4 · de volta', narration: 'O fechamento que volta ao gancho.', hud_text: 'Fechamento', camera: 'closeup', nibble: { pos: [0, 0, 0.4], rotY: 0.55, anim: 'celebrate', mood: 'happy' } },
+    { id: 'sc03_fecha', tone: 'payoff', environment: 'bancada', layer: 'camada 4 · de volta', narration: 'A resposta. || E uma última frase que leva de volta à primeira.', hud_text: 'Fechamento', camera: 'closeup', nibble: { pos: [0, 0, 0.4], rotY: 0.55, anim: 'celebrate', mood: 'happy' } },
   ],
 };
 writeFileSync(join(dir, 'script.json'), JSON.stringify(ep, null, 2) + '\n');

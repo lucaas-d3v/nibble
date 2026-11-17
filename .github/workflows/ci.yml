@@ -37,6 +37,9 @@ jobs:
       - name: Validar todos os episódios
         run: for d in episodes/*/; do node pipeline/validate.mjs "$(basename "$d")"; done
 
+      - name: Nota de retenção dos roteiros (informativa)
+        run: for d in episodes/ep0[1-9]*/; do node pipeline/retention.mjs "$(basename "$d")"; done
+
       - name: Verificador de fluidez (30 fps)
         run: node pipeline/smoothness.mjs ep00_nibble --fps 30 --ratio 6 || echo "::warning::trancos encontrados (veja o log)"
 

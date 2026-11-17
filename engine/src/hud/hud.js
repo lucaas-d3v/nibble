@@ -26,20 +26,34 @@ export class Hud {
   /**
    * @param project (anchor) => {x, y} em fração da tela (0..1), ou null se atrás da câmera
    */
-  update({ t, lt, total, scene, entry, project }) {
+  update({ t, lt, total, scene, entry, project, hook }) {
+    if (hook) {
+      if (!this.hookEl) { this.hookEl = document.createElement('div'); this.hookEl.className = 'cz-hook'; this.el.appendChild(this.hookEl); }
+      const text = typeof hook === 'string' ? hook : hook.text, until = hook.until ?? 2.6;
+      this.hookEl.innerHTML = esc(text).replace(/\*(.+?)\*/g, '<span>$1</span>');
+      const kin = clamp01(t / 0.18), kout = clamp01((until - t) / 0.25);
+      this.hookK = Math.max(0, Math.min(kin, kout));
+      this.hookEl.style.opacity = this.hookK;
+      this.hookEl.style.transform = `translateY(${(1 - easeOutBack(kin)) * 3}cqmin) scale(${0.96 + 0.04 * kin})`;
+    }
     this.pillText.textContent = scene.hud_text ?? '';
     this.pill.style.display = scene.hud_text ? '' : 'none';
     this.pill.style.transform = `scale(${easeOutBack(clamp01(lt / 0.35))})`;
+    // o título de gancho ocupa o topo: a pílula espera ele sair
+    this.pill.style.opacity = 1 - (this.hookK ?? 0);
     this.layer.textContent = scene.layer ? `▼ ${scene.layer}` : '';
-    this.layer.style.opacity = clamp01((lt - 0.2) / 0.3);
+    this.layer.style.opacity = clamp01((lt - 0.2) / 0.3) * (1 - (this.hookK ?? 0));
 
     const cap = entry.captions.find((c) => t >= c.start && t < c.end);
     if (cap) {
       const words = cap.text.split(' ');
       const k = Math.min(words.length - 1, Math.floor(((t - cap.start) / (cap.end - cap.start)) * words.length));
       // *palavra* no roteiro = ênfase permanente na legenda
+      let inEm = false;
       this.cap.innerHTML = words.map((w, i) => {
-        const em = /^\*.+\*[.,!?…;:]*$/.test(w) || /^\*[^*]+\*$/.test(w.replace(/[.,!?…;:]+$/, ''));
+        const opens = w.startsWith('*'), closes = /\*[.,!?…;:]*$/.test(w);
+        const em = inEm || opens;
+        inEm = (inEm || opens) && !closes;
         const txt = esc(w.replace(/\*/g, ''));
         return em ? `<em class="${i === k ? 'on' : ''}">${txt}</em>` : i === k ? `<b>${txt}</b>` : txt;
       }).join(' ');
@@ -60,7 +74,7 @@ export class Hud {
     const W = this.el.clientWidth, H = this.el.clientHeight;
     this.labelEls.forEach((d, i) => {
       const l = labels[i], p = l && project(l.anchor);
-      const k = l ? clamp01((lt - (l.at ?? 0.4)) / 0.3) : 0;
+      const k = l ? Math.min(clamp01((lt - (l.at ?? 0.4)) / 0.3), l.until !== undefined ? clamp01((l.until - lt) / 0.2) : 1) : 0;
       if (!l || !p || k <= 0) { d.style.display = 'none'; return; }
       d.style.display = ''; d.textContent = l.text;
       const right = (l.side ?? 'right') === 'right';
@@ -80,7 +94,7 @@ export class Hud {
 
   /**
    * Sobreposições do roteiro (scene.overlays):
-   *  { type: 'counter', at, dur, from, to, format: 'dec'|'hex'|'bin', digits, label, pos: [x, y] }
+   *  { type: 'counter', at, dur, from, to, format: 'dec'|'hex'|'bin', digits, label, pos: [x, y], until }
    *  { type: 'code', at, text (linhas com \n), char_time, pos: [x, y] }
    */
   _overlays(scene, lt) {
@@ -99,7 +113,8 @@ export class Hud {
     }
     list.forEach((o, i) => {
       const d = this._ovEls[i], k = clamp01((lt - (o.at ?? 0.5)) / 0.25);
-      d.style.opacity = k;
+      // 'until' tira o overlay da tela antes do fim da cena (abre espaço pro próximo)
+      d.style.opacity = o.until !== undefined ? Math.min(k, clamp01((o.until - lt) / 0.2)) : k;
       d.style.transform = `translate(-50%, -50%) scale(${0.85 + 0.15 * easeOutBack(k)})`;
       if (k <= 0) return;
       if (o.type === 'counter') {

@@ -6,7 +6,12 @@
 //
 // A chave vem SEMPRE da variável de ambiente. Nunca coloque a chave em arquivo do repositório.
 // A voz vem de --voice, da variável ELEVENLABS_VOICE_ID, ou de voice.json na raiz:
-//   { "voice_id": "...", "model_id": "eleven_multilingual_v2", "stability": 0.45, "similarity_boost": 0.8, "style": 0.15 }
+//   { "voice_id": "...", "model_id": "eleven_multilingual_v2", "stability": 0.35, "similarity_boost": 0.8, "style": 0.3 }
+//
+// Padrões puxados pro lado humano: estabilidade baixa varia a entonação entre frases (alta deixa
+// tudo no mesmo tom, que é o que mais denuncia voz sintética), style dá um pouco de atitude, e a
+// velocidade muda com o tom da cena (gancho um pouco mais rápido, payoff mais calmo).
+// Uma cena pode sobrescrever: "voice": { "speed": 0.95, "stability": 0.5 }.
 //
 // Cada cena vira episodes/<ep>/audio/<scene_id>.mp3. Há cache: só gera de novo a cena
 // cujo texto ou configuração mudou, para não gastar crédito à toa. --force ignora o cache.
@@ -15,7 +20,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, resolveEpisode, loadEpisode, parseArgs } from './common.mjs';
-import { BEAT, BEAT_PAUSE } from '../shared/timeline.js';
+import { BEAT, pauseAfter } from '../shared/timeline.js';
 
 const args = parseArgs(process.argv.slice(2));
 const API = process.env.ELEVENLABS_BASE_URL ?? 'https://api.elevenlabs.io';
@@ -42,7 +47,7 @@ if (args.voices) {
 
 const cfgFile = join(ROOT, 'voice.json');
 const cfg = {
-  model_id: 'eleven_multilingual_v2', stability: 0.45, similarity_boost: 0.8, style: 0.15, speed: 1.0,
+  model_id: 'eleven_multilingual_v2', stability: 0.35, similarity_boost: 0.8, style: 0.3, speed: 1.0,
   ...(existsSync(cfgFile) ? JSON.parse(readFileSync(cfgFile, 'utf8')) : {}),
 };
 const voiceId = args.voice ?? process.env.ELEVENLABS_VOICE_ID ?? cfg.voice_id;
@@ -59,7 +64,11 @@ const cacheFile = join(audioDir, '.cache.json');
 const cache = existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, 'utf8')) : {};
 
 // "||" do roteiro vira pausa real na fala
-const toSpeech = (s) => s.replace(/\*/g, '').split(BEAT).map((p) => p.trim()).filter(Boolean).join(` <break time="${BEAT_PAUSE + 0.15}s" /> `);
+// cada || vira uma pausa do tamanho que a frase pede (ver pauseAfter)
+const toSpeech = (s) => {
+  const parts = s.replace(/\*/g, '').split(BEAT).map((p) => p.trim()).filter(Boolean);
+  return parts.map((p, i) => (i < parts.length - 1 ? `${p} <break time="${(pauseAfter(p) + 0.15).toFixed(2)}s" />` : p)).join(' ');
+};
 const plain = (s) => s.replace(/\*/g, '').replaceAll(BEAT, ' ').replace(/\s+/g, ' ').trim();
 
 const only = args.scene ? [episode.scenes[Number(args.scene) - 1]] : episode.scenes;
@@ -67,7 +76,11 @@ let spent = 0;
 for (const scene of only) {
   const i = episode.scenes.indexOf(scene);
   const text = toSpeech(scene.narration);
-  const settings = { stability: cfg.stability, similarity_boost: cfg.similarity_boost, style: cfg.style, use_speaker_boost: true, speed: cfg.speed };
+  const toneSpeed = { hook: 1.05, payoff: 0.95 }[scene.tone] ?? 1.0;
+  const settings = {
+    stability: scene.voice?.stability ?? cfg.stability, similarity_boost: cfg.similarity_boost, style: scene.voice?.style ?? cfg.style,
+    use_speaker_boost: true, speed: Math.min(1.2, Math.max(0.7, scene.voice?.speed ?? cfg.speed * toneSpeed)),
+  };
   const key = createHash('sha256').update(JSON.stringify([voiceId, cfg.model_id, text, settings])).digest('hex').slice(0, 16);
   const out = join(audioDir, `${scene.id}.mp3`);
   if (!args.force && cache[scene.id] === key && existsSync(out)) {
