@@ -130,6 +130,12 @@ pede. Uma cena pode ajustar a própria voz com `"voice": { "speed": 0.95 }`.
 Há cache por cena: mudou uma frase, só aquela cena é gerada de novo. Cada caractere custa ~1 crédito;
 um episódio de 40 s gasta uns 550. Dá pra usar a própria voz: salve `audio/<cena>.wav` e pule o `make voice`.
 
+A voz passa por uma cadeia de masterização no `make video`: corte de grave, de-esser, -3 dB na faixa de
+6,5 kHz (onde o pt-BR sintético fica estridente), um pouco de corpo em 180 Hz e compressão leve. Se a voz
+escolhida ainda soar aguda ou ficar abafada, ajuste no `voice.json`, sem mexer no código:
+`"eq": { "deess": 0.5, "harsh": -4, "air": -1.5, "body": 2 }`. O volume final é medido em duas passadas
+e fica em -14 LUFS.
+
 O `make video` sintetiza os efeitos no ffmpeg (chicote, impacto da ênfase, clique, faísca, pulo), põe o
 fundo de cada cenário, abaixa a trilha (`music.mp3`, opcional) quando há voz e gera a legenda `.srt`.
 

@@ -6,8 +6,8 @@
 //
 //   node pipeline/assemble.mjs ep01_tecla [--video video.mp4] [--no-sfx] [--no-voice] [--music caminho]
 //   --no-voice: versão sem narração (só efeitos e fundo), com os tempos do áudio real; sai como <ep>_sem_voz.mp4
-import { execFileSync } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, resolveEpisode, loadEpisode, timelineFor, parseArgs } from './common.mjs';
 import { ensureSfx, sfxEvents } from './sfx.mjs';
@@ -28,6 +28,27 @@ const total = timeline.total_duration;
 const ts = (x) => { const ms = Math.round(x * 1000); const h = Math.floor(ms / 3.6e6), m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1000) % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`; };
 const caps = timeline.scenes.flatMap((s) => s.captions);
 writeFileSync(join(dir, 'output', `${episode.episode_id}.srt`), caps.map((c, i) => `${i + 1}\n${ts(c.start)} --> ${ts(c.end)}\n${c.text}\n`).join('\n'));
+
+function voiceChain() {
+  let eq = {};
+  try { eq = JSON.parse(readFileSync(join(ROOT, 'voice.json'), 'utf8')).eq ?? {}; } catch {}
+  const c = {
+    highpass: 80,        // Hz: abaixo disso é só ronco
+    deess: 0.4,          // 0..1: intensidade do de-esser (não linear: 0,6 já abafa)
+    harsh: -3,           // dB em ~6,5 kHz (a faixa que soa "aguda demais")
+    air: -1,             // dB acima de 10 kHz
+    body: 2,             // dB em ~180 Hz (corpo da voz)
+    ...eq,
+  };
+  return [
+    `highpass=f=${c.highpass}`,
+    `deesser=i=${c.deess}:m=0.5:f=0.5:s=o`,
+    `equalizer=f=6500:t=q:w=1.0:g=${c.harsh}`,
+    `highshelf=f=10000:g=${c.air}`,
+    `lowshelf=f=180:g=${c.body}`,
+    'acompressor=threshold=-20dB:ratio=3:attack=8:release=80:makeup=2',
+  ].join(',');
+}
 
 const inputs = [], filters = [], voice = [], fx = [];
 const input = (f, loop = false) => { inputs.push(...(loop ? ['-stream_loop', '-1'] : []), '-i', f); return inputs.filter((x) => x === '-i').length; };
@@ -63,11 +84,16 @@ const music = args.music ?? ['mp3', 'wav', 'flac', 'm4a', 'ogg'].flatMap((e) => 
 
 const mix = [];
 if (voice.length) {
-  filters.push(`${voice.join('')}amix=inputs=${voice.length}:normalize=0[voice]`);
+  // Cadeia da voz (aplicada depois de juntar as cenas, pra soar igual do começo ao fim):
+  // corta grave inútil, tira o "s" e o "x" estridentes (o pt-BR tem muito sibilante e a
+  // ElevenLabs entrega brilho demais), abaixa a faixa que cansa (5–8 kHz), devolve corpo
+  // no grave-médio e segura a dinâmica. Ajustável por voice.json → "eq".
+  filters.push(`${voice.join('')}amix=inputs=${voice.length}:normalize=0,${voiceChain()}[voice]`);
   if (music) filters.push('[voice]asplit=2[voice][vkey]');
   mix.push('[voice]');
 }
-if (fx.length) { filters.push(`${fx.join('')}amix=inputs=${fx.length}:normalize=0[fx]`); mix.push('[fx]'); }
+// efeitos sintetizados têm ruído branco (faísca, chicote, impacto): sem teto, viram chiado
+if (fx.length) { filters.push(`${fx.join('')}amix=inputs=${fx.length}:normalize=0,lowpass=f=9000,highshelf=f=5000:g=-3[fx]`); mix.push('[fx]'); }
 if (music) {
   const k = input(music, true);
   filters.push(`[${k}:a]aresample=48000,aformat=channel_layouts=mono,atrim=0:${total.toFixed(3)},afade=t=out:st=${Math.max(0, total - 1.5).toFixed(3)}:d=1.5,volume=-16dB[mus]`);
@@ -75,9 +101,30 @@ if (music) {
   else mix.push('[mus]');
 }
 if (!mix.length) { console.log('Nada para mixar (sem voz, sem efeitos, sem trilha). Vídeo mudo em', video); process.exit(0); }
-filters.push(`${mix.join('')}amix=inputs=${mix.length}:normalize=0,apad,atrim=0:${total.toFixed(3)},loudnorm=I=-14:TP=-1.5:LRA=11[out]`);
+// Loudness em duas passadas: a primeira mede, a segunda aplica o ganho exato.
+// Numa passada só o loudnorm age como compressor e, em vídeo curto, fica 2–3 LU abaixo do alvo.
+const pre = `${mix.join('')}amix=inputs=${mix.length}:normalize=0,apad,atrim=0:${total.toFixed(3)}`;
+const LN = 'I=-14:TP=-1.5:LRA=11';
+let ln = `loudnorm=${LN}`;
+orExit(() => { requireFilters(filterNames(filters.join(';') + ',loudnorm,apad,atrim,amix'), 'make video (mixagem)'); requireEncoder('aac', 'make video (áudio do mp4)'); });
+const measure = (tail) => {
+  const r = spawnSync(FFMPEG, ['-hide_banner', '-nostats', '-nostdin', '-i', video, ...inputs, '-filter_complex', [...filters, `${pre}${tail},loudnorm=${LN}:print_format=json[m]`].join(';'),
+    '-map', '[m]', '-f', 'null', '-'], { encoding: 'utf8', maxBuffer: 64 << 20 });
+  const js = /\{[^{}]*"input_i"[^{}]*\}/.exec(r.stderr ?? '');
+  return js ? Number(JSON.parse(js[0]).input_i) : null;
+};
+// ganho fixo até -14 LUFS e um limitador só nos picos (impacto, clique). O limitador come um
+// pouco do volume, então mede de novo com ele e corrige o ganho uma vez.
+const lim = (g) => `,volume=${g.toFixed(2)}dB,alimiter=limit=0.82:attack=2:release=60:level=0`;
+const i0 = measure('');
+if (i0 !== null && Number.isFinite(i0)) {
+  let gain = -14 - i0;
+  const i1 = measure(lim(gain));
+  if (i1 !== null && Number.isFinite(i1)) gain += Math.max(-3, Math.min(3, -14 - i1));
+  ln = lim(gain).slice(1);
+} else console.warn('aviso: medição de loudness falhou; usando uma passada só');
+filters.push(`${pre},${ln}[out]`);
 
-orExit(() => { requireFilters(filterNames(filters.join(';')), 'make video (mixagem)'); requireEncoder('aac', 'make video (áudio do mp4)'); });
 const out = join(dir, 'output', `${episode.episode_id}_${args['no-voice'] ? 'sem_voz' : 'final'}.mp4`);
 execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', video, ...inputs, '-filter_complex', filters.join(';'),
   '-map', '0:v', '-map', '[out]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out], { stdio: 'inherit' });
