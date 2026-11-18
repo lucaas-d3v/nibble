@@ -70,7 +70,7 @@ voices:
 	node pipeline/voice.mjs --voices
 
 voice:
-	node pipeline/voice.mjs $(EP) $(if $(SCENE),--scene $(SCENE),)
+	node pipeline/voice.mjs $(EP) $(if $(SCENE),--scene $(SCENE),) $(if $(VOICE),--voice $(VOICE),)
 
 video:
 	node pipeline/assemble.mjs $(EP)
