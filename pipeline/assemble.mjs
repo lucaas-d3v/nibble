@@ -4,7 +4,8 @@
 //   + trilha opcional (audio/music.* no episódio ou music.* na raiz) que abaixa sozinha sob a voz.
 // Normaliza em -14 LUFS (alvo das plataformas de vídeo curto) e grava a legenda em .srt.
 //
-//   node pipeline/assemble.mjs ep01_tecla [--video video.mp4] [--no-sfx] [--music caminho]
+//   node pipeline/assemble.mjs ep01_tecla [--video video.mp4] [--no-sfx] [--no-voice] [--music caminho]
+//   --no-voice: versão sem narração (só efeitos e fundo), com os tempos do áudio real; sai como <ep>_sem_voz.mp4
 import { execFileSync } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -34,7 +35,7 @@ const input = (f, loop = false) => { inputs.push(...(loop ? ['-stream_loop', '-1
 // narração
 timeline.scenes.forEach((s) => {
   const f = audioFiles[s.id];
-  if (!f) return;
+  if (!f || args['no-voice']) return;
   const k = input(f);
   filters.push(`[${k}:a]aresample=48000,aformat=channel_layouts=mono,adelay=${Math.round((s.start + VOICE_OFFSET) * 1000)}:all=1[v${k}]`);
   voice.push(`[v${k}]`);
@@ -77,7 +78,7 @@ if (!mix.length) { console.log('Nada para mixar (sem voz, sem efeitos, sem trilh
 filters.push(`${mix.join('')}amix=inputs=${mix.length}:normalize=0,apad,atrim=0:${total.toFixed(3)},loudnorm=I=-14:TP=-1.5:LRA=11[out]`);
 
 orExit(() => { requireFilters(filterNames(filters.join(';')), 'make video (mixagem)'); requireEncoder('aac', 'make video (áudio do mp4)'); });
-const out = join(dir, 'output', `${episode.episode_id}_final.mp4`);
+const out = join(dir, 'output', `${episode.episode_id}_${args['no-voice'] ? 'sem_voz' : 'final'}.mp4`);
 execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', video, ...inputs, '-filter_complex', filters.join(';'),
   '-map', '0:v', '-map', '[out]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out], { stdio: 'inherit' });
 console.log(`${out}\n  voz: ${voice.length} cenas · efeitos: ${fx.length} · trilha: ${music ? 'sim (com ducking)' : 'não'} · legenda: ${episode.episode_id}.srt`);
