@@ -73,10 +73,10 @@ voice:
 	node pipeline/voice.mjs $(EP) $(if $(SCENE),--scene $(SCENE),) $(if $(VOICE),--voice $(VOICE),)
 
 video:
-	node pipeline/assemble.mjs $(EP) $(if $(VIDEO),--video $(VIDEO),)
+	node pipeline/assemble.mjs $(EP) $(if $(VIDEO),--video $(VIDEO),) $(if $(PEAK),--peak $(PEAK),) $(if $(LUFS),--lufs $(LUFS),)
 
 video-sem-voz:
-	node pipeline/assemble.mjs $(EP) --no-voice $(if $(VIDEO),--video $(VIDEO),)
+	node pipeline/assemble.mjs $(EP) --no-voice $(if $(VIDEO),--video $(VIDEO),) $(if $(PEAK),--peak $(PEAK),) $(if $(LUFS),--lufs $(LUFS),)
 
 wasm:
 	$(ZIG) build-exe sim/sim.zig -target wasm32-freestanding -O ReleaseSmall -fno-entry -rdynamic -femit-bin=engine/public/sim.wasm

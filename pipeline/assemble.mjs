@@ -5,6 +5,8 @@
 // Normaliza em -14 LUFS (alvo das plataformas de vídeo curto) e grava a legenda em .srt.
 //
 //   node pipeline/assemble.mjs ep01_tecla [--video video.mp4] [--no-sfx] [--no-voice] [--music caminho]
+//   --peak -6 (padrão): normaliza pelo pico, teto em -6 dBFS · --lufs -14: normaliza pela loudness
+//   (os dois juntos: loudness alvo com o limitador segurando os picos no teto dado)
 //   --no-voice: versão sem narração (só efeitos e fundo), com os tempos do áudio real; sai como <ep>_sem_voz.mp4
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -111,17 +113,39 @@ const measure = (tail) => {
   const r = spawnSync(FFMPEG, ['-hide_banner', '-nostats', '-nostdin', '-i', video, ...inputs, '-filter_complex', [...filters, `${pre}${tail},loudnorm=${LN}:print_format=json[m]`].join(';'),
     '-map', '[m]', '-f', 'null', '-'], { encoding: 'utf8', maxBuffer: 64 << 20 });
   const js = /\{[^{}]*"input_i"[^{}]*\}/.exec(r.stderr ?? '');
-  return js ? Number(JSON.parse(js[0]).input_i) : null;
+  if (!js) return null;
+  const m = JSON.parse(js[0]);
+  return { i: Number(m.input_i), tp: Number(m.input_tp) };
 };
-// ganho fixo até -14 LUFS e um limitador só nos picos (impacto, clique). O limitador come um
-// pouco do volume, então mede de novo com ele e corrige o ganho uma vez.
-const lim = (g) => `,volume=${g.toFixed(2)}dB,alimiter=limit=0.82:attack=2:release=60:level=0`;
-const i0 = measure('');
-if (i0 !== null && Number.isFinite(i0)) {
-  let gain = -14 - i0;
-  const i1 = measure(lim(gain));
-  if (i1 !== null && Number.isFinite(i1)) gain += Math.max(-3, Math.min(3, -14 - i1));
-  ln = lim(gain).slice(1);
+// Padrão: normaliza pelo pico, com teto em -6 dBFS (folga pra quem for editar ou mixar depois).
+// --lufs -14 troca pra normalizar pela loudness (o alvo do YouTube), com limitador nos picos.
+const PEAK = Number(args.peak ?? -6);
+const lim = (g, ceilDb) => `,volume=${g.toFixed(2)}dB,alimiter=limit=${(10 ** (ceilDb / 20)).toFixed(4)}:attack=2:release=60:level=0`;
+const m0 = measure('');
+if (m0 && Number.isFinite(m0.i)) {
+  if (args.lufs !== undefined) {
+    const target = Number(args.lufs);
+    let gain = target - m0.i;
+    const ceil = args.peak !== undefined ? PEAK : -1.6;
+    // o limitador trabalha por amostra; o pico verdadeiro (entre amostras, e depois do AAC) passa
+    // um pouco. Ajusta até 3 vezes: o teto manda, a loudness chega o mais perto que o teto deixa.
+    let lc = ceil - 0.5;
+    for (let k = 0; k < 3; k++) {
+      const m1 = measure(lim(gain, lc));
+      if (!m1 || !Number.isFinite(m1.i)) break;
+      const over = m1.tp - (ceil - 0.2);
+      if (over > 0) lc -= over;
+      else gain += Math.max(-3, Math.min(3, target - m1.i));
+      if (over <= 0 && Math.abs(target - m1.i) < 0.3) break;
+    }
+    ln = lim(gain, lc).slice(1);
+  } else {
+    // ganho até o pico verdadeiro bater no teto; o limitador só segura o que escapar entre amostras
+    let g = PEAK - m0.tp;
+    const m1 = measure(lim(g, PEAK - 0.3));
+    if (m1 && m1.tp > PEAK - 0.2) g -= m1.tp - (PEAK - 0.2);
+    ln = lim(g, PEAK - 0.3).slice(1);
+  }
 } else console.warn('aviso: medição de loudness falhou; usando uma passada só');
 filters.push(`${pre},${ln}[out]`);
 

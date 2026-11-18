@@ -133,8 +133,9 @@ um episódio de 40 s gasta uns 550. Dá pra usar a própria voz: salve `audio/<c
 A voz passa por uma cadeia de masterização no `make video`: corte de grave, de-esser, -3 dB na faixa de
 6,5 kHz (onde o pt-BR sintético fica estridente), um pouco de corpo em 180 Hz e compressão leve. Se a voz
 escolhida ainda soar aguda ou ficar abafada, ajuste no `voice.json`, sem mexer no código:
-`"eq": { "deess": 0.5, "harsh": -4, "air": -1.5, "body": 2 }`. O volume final é medido em duas passadas
-e fica em -14 LUFS.
+`"eq": { "deess": 0.5, "harsh": -4, "air": -1.5, "body": 2 }`. O volume final é normalizado pelo pico,
+com teto em -6 dBFS (`make video PEAK=-3` muda o teto). Pra mirar na loudness do YouTube em vez do pico:
+`make video LUFS=-14` (teto de pico em -1,5 dB nesse modo).
 
 O `make video` sintetiza os efeitos no ffmpeg (chicote, impacto da ênfase, clique, faísca, pulo), põe o
 fundo de cada cenário, abaixa a trilha (`music.mp3`, opcional) quando há voz e gera a legenda `.srt`.
